@@ -1,0 +1,65 @@
+$icon-font-path: '~bootstrap-sass/assets/fonts/bootstrap/';
+@import '~bootstrap-sass/assets/stylesheets/bootstrap/_mixins.scss';
+@import '~bootstrap-sass/assets/stylesheets/_bootstrap.scss';
+
+// can add Boostrap overrides, additional Sass/CSS below...
+
+div.container {
+    diplay: flex;
+    flex-direction:  column;
+}
+div.container div.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin: 10px;
+}
+
+.widget,.controller,.col {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: inline-block;
+    max-width:551px;
+    min-width:400px;
+}
+
+
+.enter {
+    font: bold 20px monospace;
+    fill: green;
+}
+
+.update {
+    font: bold 20px monospace;
+    fill: red;
+}
+.exit {
+    font: bold 20px monospace;
+  fill: brown;
+}
+
+
+.grid {
+    fill: #777;
+    stroke-width: 0;
+    stroke-opacity: 0.5
+}
+
+.grid:hover {
+}
+.grid.colored:hover {
+    stroke-width: 0.1%;
+}
+.grid.active {
+    fill: #449;
+}
+.grid.active:hover {
+    fill: #e4f;
+}
+
+.overlay {
+    fill: none;
+    pointer-events: all;
+}
