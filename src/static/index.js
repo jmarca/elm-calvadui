@@ -1,6 +1,5 @@
 // pull in desired CSS/SASS files
 require( './styles/main.scss' );
-require('./styles/_elm-datepicker.scss');
 
 var handleColor = require("./handleColor.js")
 var handleTopo = require("./handleTopo.js")
