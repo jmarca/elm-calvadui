@@ -4,6 +4,31 @@ $icon-font-path: '~bootstrap-sass/assets/fonts/bootstrap/';
 
 // can add Boostrap overrides, additional Sass/CSS below...
 
+/// Slightly lighten a color
+/// @access public
+/// @param {Color} $color - color to tint
+/// @param {Number} $percentage - percentage of `$color` in returned color
+/// @return {Color}
+@function tint($color, $percentage) {
+  @return mix(white, $color, $percentage);
+}
+
+/// Slightly darken a color
+/// @access public
+/// @param {Color} $color - color to shade
+/// @param {Number} $percentage - percentage of `$color` in returned color
+/// @return {Color}
+@function shade($color, $percentage) {
+  @return mix(black, $color, $percentage);
+}
+
+$color-teal-base: #f5f0e1;
+$black: #111;
+
+body {
+  background-color: $color-teal-base;
+}
+
 div.container {
     diplay: flex;
     flex-direction:  column;
@@ -13,6 +38,14 @@ div.container div.row {
     justify-content: space-between;
     align-items: flex-start;
     margin: 10px;
+}
+
+.mapapp {
+    border: solid $black 1px;
+}
+
+text.maplabel {
+    color: $black;
 }
 
 .widget,.controller,.col {
@@ -42,7 +75,7 @@ div.container div.row {
 
 
 .grid {
-    fill: #777;
+    fill: shade($color-teal-base, 20%);
     stroke-width: 0;
     stroke-opacity: 0.5
 }
@@ -59,7 +92,7 @@ div.container div.row {
     fill: #e4f;
 }
 
-.overlay {
-    fill: none;
-    pointer-events: all;
+rect {
+    fill: $color-teal-base;
+    fill-opacity: 0.9;
 }

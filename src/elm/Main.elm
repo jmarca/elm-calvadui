@@ -1,5 +1,5 @@
 port module Main exposing (..)
-
+import String
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes as Attr
@@ -10,6 +10,10 @@ import Svg exposing (..)
 import Svg.Attributes as SvgAttr exposing (..)
 import Json.Decode as Json exposing (..)
 import Task
+import Date exposing (Date, Day(..), day, dayOfWeek, month, year)
+import DatePicker exposing (defaultSettings)
+import Date.Extra.Format as Format exposing (format, isoDateFormat,formatUtc, isoStringNoOffset)
+import Date.Extra.Core exposing (monthToInt)
 import Dict exposing (..)
 
 main : Program Flags
@@ -33,64 +37,47 @@ type alias Model =
     {file : String
     ,records : Maybe (List PathRecord)
     ,data : Maybe (Dict String String)
-    ,year : Int
-    ,month : Int
-    ,day : Int
-    ,hour : Int
     ,dataUrl : String
     ,fetchingColors : Bool
     ,showingDate : Maybe String
+    ,datePicker : DatePicker.DatePicker
+    ,date : Maybe Date
+    ,hour : Int
     }
 
--- type alias Properties =
---     { gid : Int
---     ,id : String}
-
--- type alias Coordinate =
---     (Float, Float)
-
--- type alias PolyLine =
---      List Coordinate
-
--- type alias PolyCoordinates =
---      List ( List  PolyLine  )
-
-
--- type alias Geometry =
---     { type' : String
---       ,coordinates : PolyCoordinates }
-
--- type alias Feature =
---     {type' : String
---     ,properties : Properties
---     ,geometry : Geometry }
-
--- {"type":"Feature",
---    "properties":{
---            "gid":25083,
---            "id":"120_278"},
---    "geometry":{
---            "type":"Polygon",
---            "coordinates":[[[-123.08153279727972,42.0060393009301],[-123.10209111311131,42.0060393009301],[-123.10209111311131,42.007934650465046],[-123.08153279727972,42.0060393009301]]]}
---   }
 
 type alias Flags =
     {mapfile : String
-    ,dataUrl : String}
+    ,dataUrl : String
+    ,year : Int
+    ,month : Int
+    ,day : Int}
 
 
 init: Flags -> (Model, Cmd Msg)
 init fl =
-  ({ file = fl.mapfile
-   , dataUrl = fl.dataUrl
-   , records = Nothing
-   , data = Nothing
-   , year = 2012
-   , month = 1
-   , day = 11
-   , hour = 8
-   , fetchingColors = False
-   , showingDate = Nothing} , getIt2 fl.mapfile)
+    let
+        initdate =  (mkDate fl.year fl.month fl.day)
+        ( datePicker, datePickerFx ) =
+            DatePicker.init
+                { defaultSettings
+                    | inputClassList = [ ( "form-control", True ) ]
+                    , inputName = Just "date"
+                    , pickedDate = Just initdate
+                }
+    in
+        { file = fl.mapfile
+         , dataUrl = fl.dataUrl
+         , records = Nothing
+         , data = Nothing
+         , datePicker = datePicker
+         , date = Just initdate
+         , hour = 8
+         , fetchingColors = False
+         , showingDate = Nothing}
+         ! [ Cmd.batch([getIt2 fl.mapfile
+                       , Cmd.map ToDatePicker datePickerFx
+                       ])]
 
 
 -- UPDATE
@@ -110,31 +97,60 @@ type Msg
   | IdPath (List PathRecord)
   | ColorMap Json.Value
   | FetchFail Http.Error
-
-
+  | ToDatePicker DatePicker.Msg
+  | Hour String
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    MorePlease ->
-        let
-            year = if(model.year < 10) then  "0"++toString(model.year) else toString(model.year)
-            month= if(model.month < 10)then "0"++toString(model.month) else toString(model.month)
-            day  = if(model.day < 10)  then "0"++toString(model.day)  else  toString(model.day)
-            hour = if(model.hour < 10) then "0"++toString(model.hour) else  toString(model.hour)
-            fetchingDate = year++"-"++month++"-"++day++" "++hour++":00"
-        in
+    ToDatePicker rec ->
+            let
+                ( datePicker, datePickerFx, mDate ) =
+                    DatePicker.update rec model.datePicker
 
-            ({model | fetchingColors = True , showingDate = Just fetchingDate}
-            , getData model)
+                date =
+                    case mDate of
+                        Nothing ->
+                            model.date
+
+                        dd ->
+                            dd
+            in
+             { model
+                  | date = date
+                  , datePicker = datePicker
+              }
+             ! [ Cmd.map ToDatePicker datePickerFx]
+
+    Hour rec ->
+        ({model | hour = Result.withDefault model.hour (String.toInt rec)}
+        ,Cmd.none)
+
+    MorePlease ->
+        ({model | fetchingColors = True} , getData model)
+
 
     FetchSucceed2 rec ->
         (model, getTopoJson rec)
 
     FetchDataSucceed rec ->
-        ({model | fetchingColors = False, hour = model.hour + 1}
-        , getColorJson rec)
+        case model.date of
+            Just date ->
+                let
+                    y = (toString (Date.year date))
+                    m = (pad (monthToInt (Date.month date)))
+                    d  = (pad (Date.day date))
+                    h = (pad model.hour)
+                    newDateFetched =  y++"-"++m++"-"++d++" "++h++":00"
+                in
+                    ({model |
+                      fetchingColors = False
+                     ,showingDate = Just newDateFetched
+                     ,hour = model.hour + 1}
+                    , getColorJson rec)
+            Nothing ->
+                (model , Cmd.none)
 
     IdPath newFeatures ->
         ({model | records = Just newFeatures}, Cmd.none)
@@ -144,7 +160,6 @@ update msg model =
 
     FetchFail _ ->
         (model, Cmd.none)
-
 
 
 -- SUBSCRIPTIONS
@@ -202,29 +217,38 @@ svgpath2 colordata entry =
 
 mapcontrol : Model -> Html Msg
 mapcontrol model =
-    let
-        year = if(model.year < 10) then  "0"++toString(model.year) else toString(model.year)
-        month= if(model.month < 10)then "0"++toString(model.month) else toString(model.month)
-        day  = if(model.day < 10)  then "0"++toString(model.day)  else  toString(model.day)
-        hour = if(model.hour < 10) then "0"++toString(model.hour) else  toString(model.hour)
-        currday = year++"-"++month++"-"++day
-        filePath = year++"_"++month++"_"++day++"_"++hour++"00.json"
-    in
-        div [Attr.class "mapcontrol col"]
-            [h2 []
-                 [Html.text "Map of estimated hourly VMT"]
-            , label[][Html.text "Date: "
-                          , input [ Attr.type' "date"
-                                  , Attr.value currday ][]
-                     ]
-            , label[][Html.text "Hour: "
-                          , input [ Attr.type' "number"
-                                  , Attr.value hour
-                                  , Attr.min "0"
-                                  , Attr.max "23"
-                                  , Attr.step "1" ][]
-                     ]
-            , button [ onClick MorePlease ] [ Html.text ("get "++filePath) ]]
+            let
+                currday = case model.date of
+                              Just date ->
+                                  let
+                                      y = (toString (Date.year date))
+                                      m= (pad (monthToInt (Date.month date)))
+                                      d  = (pad (Date.day date))
+                                      h = (pad model.hour)
+                                  in
+                                      y++"-"++m++"-"++d++" "++h++":00"
+                              Nothing ->
+                                  "No date selected"
+            in
+                div [Attr.class "mapcontrol col"]
+                    [h2 []
+                         [Html.text "Pick date and hour to display on map"]
+                    ,h2 [] [ Html.text <| currday ]
+                    ,label[][Html.text "Date: "
+                                  ,DatePicker.view model.datePicker
+                                  |> App.map ToDatePicker
+                                     ]
+                    ,label [] [Html.text "Hour: "
+                                    , input [ Attr.type' "number"
+                                            , Attr.value (pad model.hour)
+                                            , Attr.min "0"
+                                            , Attr.max "23"
+                                            , Attr.step "1"
+                                            , onInput Hour][]
+                              ]
+                    ,button [ Attr.disabled model.fetchingColors, onClick MorePlease ] [ Html.text ("get date")]
+                    ]
+
 
 
 view : Model -> Html Msg
@@ -235,8 +259,8 @@ view model =
                 (div [Attr.class "container"]
                      [div [Attr.class "row"][
                            div [Attr.class "mapapp col"][
-                                Svg.svg [  width "500", height "500"][
-                                     Svg.g [][]
+                                Svg.svg [  width "500", height "536"][
+                                     Svg.g [ overflow "hidden", width "500", height "500"][]
                                     ]],
                            (mapcontrol model)
                                ]])
@@ -244,15 +268,21 @@ view model =
                 ( div [Attr.class "container"]
                       [div [Attr.class "row"][
                             div [Attr.class "mapapp col"][
-                                 Svg.svg [  width "500", height "500"][
-                                      Svg.g [] (svgpaths2 records model.data)
+                                 Svg.svg [  width "500", height "536"][
+                                      Svg.g [ width "500", height "500"] (svgpaths2 records model.data)
+                                     ,Svg.rect[ x "0"
+                                              , y "500"
+                                              , width "500"
+                                              , height "36"][]
+
                                      ,Svg.text'
                                           [x "250"
-                                          , y "500"
+                                          , y "524"
                                           , fontSize "24"
-                                          , fill "#233"
-                                          , textAnchor "middle" ]
-                                          [Svg.text (Maybe.withDefault "" model.showingDate)]
+                                          , alignmentBaseline "middle"
+                                          , textAnchor "middle"
+                                          , class "maplabel"]
+                                          [Svg.text (Maybe.withDefault "No date selected" model.showingDate)]
                                      ]],
                                 (mapcontrol model)
                            ]]
@@ -265,15 +295,18 @@ view model =
 
 getData : Model -> Cmd Msg
 getData model =
-    let
-        year = if(model.year < 10) then  "0"++toString(model.year) else toString(model.year)
-        month= if(model.month < 10)then "0"++toString(model.month) else toString(model.month)
-        day  = if(model.day < 10)  then "0"++toString(model.day)  else  toString(model.day)
-        hour = if(model.hour < 10) then "0"++toString(model.hour) else  toString(model.hour)
-        filePath = year++"_"++month++"_"++day++"_"++hour++"00.json"
-        url = model.dataUrl ++ "/" ++ filePath
-    in
-        Task.perform FetchFail FetchDataSucceed (Http.get decodeResult2 url)
+    case model.date of
+        Nothing -> Cmd.none
+        Just date ->
+            let
+                y = (toString (Date.year date))
+                m= (pad (monthToInt (Date.month date)))
+                d  = (pad (Date.day date))
+                h = (pad model.hour)
+                filePath = y++"_"++m++"_"++d++"_"++h++"00.json"
+                url = model.dataUrl ++ "/" ++ filePath
+            in
+                Task.perform FetchFail FetchDataSucceed (Http.get decodeResult2 url)
 
 getIt2 : String -> Cmd Msg
 getIt2 f =
@@ -286,49 +319,6 @@ getIt2 f =
 decodeResult2 : Json.Decoder Json.Value
 decodeResult2 = Json.value
 
---decodeResult : List decodeIdPath
-
--- decodeIdPath : Json.Decoder PathRecord
--- decodeIdPath = Json.object2 PathRecord
---                (  ("id"   := Json.string)
---                       ("path" := Json.string))
-
-
--- decodeDataResult : Json.Decoder Json.Value
--- decodeDataResult = Json.value
-
-
-
---                    type DataShape
---   = HpmsEntry {sum_lane_miles : Float
---               ,sum_single_unit_mt : Float
---               ,sum_vmt : Float
---               ,sum_combination_mt : Float}
---   | DetectorEntry {n_mt : Float
---                   ,hh_mt : Float
---                   ,nhh_mt : Float
---                   ,lane_miles : Float
---                   ,miles : Float}
-
--- dataInfo : String -> Decoder DataShape
--- dataInfo tag =
---   case tag of
---     "detector_based" ->
---         object5 DetectorEntry
---             ("n_mt" := Float)
---             ("hh_mt" := Float)
---             ("nhh_mt" := Float)
---             ("lane_miles" := Float)
---             ("miles" := Float)
---     _ ->
---         object4 HpmsEntry
---           ("sum_lane_miles" := Float)
---           ("sum_single_unit_mt" := Float)
---           ("sum_vmt" := Float)
---           ("sum_combination_mt" := Float)
-
-
--- -- now combine these (but how?)
 
 gridDictionary : Json.Decoder (Dict String (Dict String (Dict String Float)))
 gridDictionary = dict (dict ( dict float))
@@ -336,3 +326,35 @@ gridDictionary = dict (dict ( dict float))
 
 colorDictionary : Json.Decoder (Dict String String)
 colorDictionary = dict Json.string
+
+
+
+
+
+mkDate : Int -> Int -> Int -> Date
+mkDate year month day =
+    toString year
+        ++ "/"
+        ++ pad month
+        ++ "/"
+        ++ pad day
+        |> unsafeDate
+
+
+unsafeDate : String -> Date
+unsafeDate date =
+    case Date.fromString date of
+        Err e ->
+            Debug.crash ("unsafeDate: failed to parse date:" ++ e)
+
+        Ok date -> date
+
+
+
+
+pad :  Int -> String
+pad int =
+    if int < 10 then
+        "0" ++ toString int
+    else
+        toString int

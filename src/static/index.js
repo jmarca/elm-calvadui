@@ -1,5 +1,6 @@
 // pull in desired CSS/SASS files
 require( './styles/main.scss' );
+require('./styles/_elm-datepicker.scss');
 
 var handleColor = require("./handleColor.js")
 var handleTopo = require("./handleTopo.js")
@@ -10,8 +11,12 @@ var Elm = require( '../elm/Main' );
 
 var app =
         Elm.Main.embed(document.getElementById("app"),{
-            'mapfile':'static/data/CA_grid_topology4326.json',
-            'dataUrl':'static/data'})
+            'mapfile':'static/data/CA_grid_topology4326.json'
+            ,'dataUrl':'static/data'
+            ,'year':2012
+            ,'month':1
+            ,'day':11
+        })
 
 app.ports.getColorJson.subscribe(function(data){
     handleColor(data,
