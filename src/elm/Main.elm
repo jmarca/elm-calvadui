@@ -9,7 +9,7 @@ import Maybe exposing (..)
 import Svg exposing (..)
 import Svg.Attributes as SvgAttr exposing (..)
 import Json.Decode as Json exposing (..)
-import Json.Encode
+--import Json.Encode
 import Task
 import Date exposing (Date, Day(..), day, dayOfWeek, month, year)
 import DatePicker exposing (defaultSettings)
