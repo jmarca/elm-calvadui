@@ -32,6 +32,7 @@ main =
 
 type alias PathRecord = {id : String, path : String}
 
+type alias DataRecord = { id: String, value : Float }
 
 type alias Model =
     {file : String
@@ -43,6 +44,8 @@ type alias Model =
     ,datePicker : DatePicker.DatePicker
     ,date : Maybe Date
     ,hour : Int
+    ,plotvars : List String
+    ,colorData : Dict String (Dict String (Dict String Float))
     }
 
 
@@ -70,6 +73,7 @@ init fl =
          , dataUrl = fl.dataUrl
          , records = Nothing
          , data = Nothing
+        , plotvars = ["sum_vmt","n_mt"]
          , datePicker = datePicker
          , date = Just initdate
          , hour = 8
@@ -84,7 +88,7 @@ init fl =
 
 port d3Update : (List String) -> Cmd msg
 port getTopoJson : Json.Value -> Cmd msg
-port getColorJson : Json.Value -> Cmd msg
+port getColorJson2 : List DataRecord -> Cmd msg
 
 -- port for listening for translated features from JavaScript
 port features : (List PathRecord -> msg) -> Sub msg
@@ -144,11 +148,14 @@ update msg model =
                     h = (pad model.hour)
                     newDateFetched =  y++"-"++m++"-"++d++" "++h++":00"
                 in
+                    -- let the UI know the data is back
                     ({model |
                       fetchingColors = False
                      ,showingDate = Just newDateFetched
-                     ,hour = model.hour + 1}
-                    , getColorJson rec)
+                     ,hour = model.hour + 1
+                     ,colorData = rec}
+                    -- and now go get the right colors for the retrieved data
+                    , getColorJson model.colorData model.plotvars)
             Nothing ->
                 (model , Cmd.none)
 
@@ -306,7 +313,29 @@ getData model =
                 filePath = y++"_"++m++"_"++d++"_"++h++"00.json"
                 url = model.dataUrl ++ "/" ++ filePath
             in
-                Task.perform FetchFail FetchDataSucceed (Http.get decodeResult2 url)
+                Task.perform FetchFail FetchDataSucceed (Http.get gridDataDictionary url)
+
+
+getter : (Dict String Float) -> String -> Float -> Float
+getter  myd a start = start + (Maybe.withDefault 0.0 (Dict.get a myd))
+
+sumValues : List String -> Dict String Float -> Float -> Float
+sumValues mykeys mydict start = List.foldl (getter mydict) start mykeys
+
+
+gridReduce : List String -> String ->  (Dict String (Dict String Float) ) -> Float
+gridReduce mykeys gridid griddata =  List.foldl (sumValues mykeys) 0.0 (Dict.values griddata)
+
+sumDataValues : Dict String (Dict String (Dict String Float)) -> List String -> Dict String Float
+sumDataValues griddata plotvars =
+    Dict.map (gridReduce plotvars) griddata
+
+
+getColorJson : Dict String (Dict String (Dict String Float)) -> List String -> Cmd Msg
+getColorJson griddata plotvars  =
+   getColorJson2 (sumDataValues griddata plotvars)
+
+
 
 getIt2 : String -> Cmd Msg
 getIt2 f =
@@ -320,8 +349,8 @@ decodeResult2 : Json.Decoder Json.Value
 decodeResult2 = Json.value
 
 
-gridDictionary : Json.Decoder (Dict String (Dict String (Dict String Float)))
-gridDictionary = dict (dict ( dict float))
+gridDataDictionary : Json.Decoder (Dict String (Dict String (Dict String Float)))
+gridDataDictionary = dict (dict ( dict float))
 
 
 colorDictionary : Json.Decoder (Dict String String)
@@ -330,6 +359,7 @@ colorDictionary = dict Json.string
 
 
 
+-- this mkDate/unsafeDate  hack idiom copied from one of the date libraries I looked at
 
 mkDate : Int -> Int -> Int -> Date
 mkDate year month day =

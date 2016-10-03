@@ -1,6 +1,6 @@
 var d3 = require('d3')
 
-function handleColor(json,callback){
+function handleColor(data, callback){
     var c = d3.scalePow().exponent(0.3)
             .domain([0, 300000]) // on one particular
     // hour,156354,
@@ -10,8 +10,10 @@ function handleColor(json,callback){
     var rainbow = d3.interpolateViridis
     var colormap = {}
     // apply c.interpolateViridis to each incoming thing
-    var cellids = Object.keys(json)
     var maxsum = 0
+    data.forEach(function(row){
+        // records of id:String, value:Numeric
+        var cellid = row.id
     cellids.forEach(function(cellid){
         var roaddata = json[cellid]
         var roadtypes = Object.keys(roaddata)
@@ -20,12 +22,11 @@ function handleColor(json,callback){
         var sum = roadtypes.reduce(
             function(prev,curr){
                 var val = 0
-                if(roaddata[curr].sum_vmt !== undefined){
-                    val = +roaddata[curr].sum_vmt
-                }else{
-                    if(roaddata[curr].n_mt !== undefined){
-                        val = +roaddata[curr].n_mt
-                    }}
+                plotvars.forEach(function (k){
+                    if(roaddata[curr][k] !== undefined){
+                        val = +roaddata[curr][k]
+                    }
+                    return null})
                 return prev + val
             }, 0)
         maxsum = sum > maxsum ? sum : maxsum
