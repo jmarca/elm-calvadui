@@ -13,7 +13,7 @@ function handleColor(data, callback){
     //console.log('here in handle color')
     // passed array of arrays.  Array[0] is cellid, array[1] is value
     var c = d3.scalePow().exponent(0.3)
-            .domain([0, 300000]) // on one particular
+            .domain([0, 190000]) // on one particular
     // hour,156354,
     // so doubling that
             .range([0,1])

@@ -92,17 +92,17 @@ init fl =
          , records = Nothing
          , data = Nothing
         , plotvars =
-              { detectorbased = True
-              , hpmsBased = True
-              , hpmsHwys = True
-              , hpmsCounty = True
-              , hpmsCity = True
-              , hpmsVMT = True
-              , hpmsCombo = False
-              , hpmsSingle = False
-              , detectorVMT = True
-              , detectorHH = False
-              , detectorNHH = False
+              { detectorbased = True  --  True
+              , hpmsBased     = True  --  True
+              , hpmsHwys      = True  --  True
+              , hpmsCounty    = True  --  True
+              , hpmsCity      = True  --  True
+              , hpmsVMT       = True  --  True
+              , hpmsCombo     = False --  False
+              , hpmsSingle    = False --  False
+              , detectorVMT   = True  --  True
+              , detectorHH    = False --  False
+              , detectorNHH   = False --  False
               }
 
          , datePicker = datePicker
@@ -351,48 +351,58 @@ getData model =
 getter : (Dict String Float) -> String -> Float -> Float
 getter  myd a start = start + (Maybe.withDefault 0.0 (Dict.get a myd))
 
-sumValues : PlotVars -> Dict String Float -> Float -> Float
-sumValues pv mydict start =
+sumValues : PlotVars -> String -> Dict String Float -> Float -> Float
+sumValues pv dk mydict start =
+    -- check here whether to bother with dk
     let
-        filterDict = Dict.filter (dataTypeFilter pv) mydict
-        dplotlist = if pv.detectorbased
-                   then ( if pv.detectorVMT
-                          then ["n_mt"]
-                          else (
-                                if pv.detectorHH && pv.detectorNHH
-                                then ["hh_mt","nhh_mt"]
-                                else if pv.detectorHH then ["hh_mt"]
-                                     else if pv.detectorNHH then ["nhh_mt"]
-                                          else []
-                               )
-                        )
-                   else []
-        -- now to hpms conditions
-        plotlist = if pv.hpmsBased
-                   then (if pv.hpmsVMT
-                         then "sum_vmt" :: dplotlist
-                         else (
-                               if pv.hpmsSingle && pv.hpmsCombo
-                               then (List.append
-                                         ["sum_single_unit_mt"
-                                         ,"sum_combination_mt"]
-                                         dplotlist)
-                               else if pv.hpmsSingle
-                                    then "sum_single_unit_mt" :: dplotlist
-                                    else if pv.hpmsCombo
-                                         then "sum_combination_mt" :: dplotlist
-                                         else dplotlist
-                              )
-                        )
-                   else dplotlist
-
+        isCO  = contains (regex "^CO\\s") dk && pv.hpmsBased && pv.hpmsCounty
+        isSHS = contains (regex "^SHS") dk && pv.hpmsBased && pv.hpmsHwys
+        isRAMP = "RAMP" == dk && pv.hpmsBased
+        isCity = pv.hpmsBased && pv.hpmsCity && (not (isCO && isSHS && isRAMP))
+        isDB = "detector_based" == dk && pv.detectorbased
+    in
+        if(not ( isCO || isSHS || isRAMP || isCity || isDB ))
+        --        then ( Debug.log (dk ++ " skipping case") 0.0)
+        then  0.0
+        else
+             let
+                -- filterDict = Dict.filter (dataTypeFilter pv) mydict
+                 dplotlist = if pv.detectorbased
+                             then ( if pv.detectorVMT
+                                    then ["n_mt"]
+                                    else (
+                                          if pv.detectorHH && pv.detectorNHH
+                                          then ["hh_mt","nhh_mt"]
+                                          else if pv.detectorHH then ["hh_mt"]
+                                               else if pv.detectorNHH then ["nhh_mt"]
+                                                    else []
+                                         )
+                                  )
+                             else []
+                 -- now to hpms conditions
+                 plotlist = if pv.hpmsBased
+                            then (if pv.hpmsVMT
+                                  then "sum_vmt" :: dplotlist
+                                  else (
+                                        if pv.hpmsSingle && pv.hpmsCombo
+                                        then (List.append
+                                                  ["sum_single_unit_mt"
+                                                  ,"sum_combination_mt"]
+                                                  dplotlist)
+                                        else if pv.hpmsSingle
+                                             then "sum_single_unit_mt" :: dplotlist
+                                             else if pv.hpmsCombo
+                                                  then "sum_combination_mt" :: dplotlist
+                                                  else dplotlist
+                                       )
+                                 )
+                            else dplotlist
 -- fix this here, need to figure out semantics of using let with
 -- conditional processing.  what I want to do is say "if detector
 -- based and vmt, then plotlist = "n_mt" :: plotlist, etc
-
-
-    in
-        List.foldl (getter filterDict) start plotlist
+             in
+                 List.foldl (getter mydict) start plotlist
+                 -- List.foldl (getter filterDict) start plotlist
 
 -- examine data type (the second level string key, after the outer grid level
 dataTypeFilter : PlotVars -> String -> a -> Bool
@@ -412,16 +422,20 @@ dataTypeFilter pv key _ =
 
 gridReduce : PlotVars -> String ->  (Dict String (Dict String Float) ) -> Float
 gridReduce pv gridid griddata =
-    List.foldl (sumValues pv) 0.0 (Dict.values griddata)
+    Dict.foldl (sumValues pv) 0.0 griddata
 
 sumDataValues : Dict String (Dict String (Dict String Float)) -> PlotVars -> Dict String Float
 sumDataValues griddata plotvars =
     Dict.map (gridReduce plotvars) griddata
 
+dropZeros : String -> Float -> Bool
+dropZeros k v =
+    (not (v == 0.0))
+
 
 getColorJson : Dict String (Dict String (Dict String Float)) -> PlotVars -> Cmd Msg
 getColorJson griddata plotvars  =
-   getColorJson2 ( Dict.toList (sumDataValues griddata plotvars))
+   getColorJson2 ( Dict.toList (Dict.filter dropZeros (sumDataValues griddata plotvars)))
 
 
 
