@@ -9,10 +9,11 @@ import Maybe exposing (..)
 import Svg exposing (..)
 import Svg.Attributes as SvgAttr exposing (..)
 import Json.Decode as Json exposing (..)
+import Json.Encode
 import Task
 import Date exposing (Date, Day(..), day, dayOfWeek, month, year)
 import DatePicker exposing (defaultSettings)
-import Date.Extra.Format as Format exposing (format, isoDateFormat,formatUtc, isoStringNoOffset)
+--import Date.Extra.Format as Format exposing (format, isoDateFormat,formatUtc, isoStringNoOffset)
 import Date.Extra.Core exposing (monthToInt)
 import Dict exposing (..)
 
@@ -77,6 +78,7 @@ init fl =
          , datePicker = datePicker
          , date = Just initdate
          , hour = 8
+                  , colorData = Dict.empty
          , fetchingColors = False
          , showingDate = Nothing}
          ! [ Cmd.batch([getIt2 fl.mapfile
@@ -88,7 +90,7 @@ init fl =
 
 port d3Update : (List String) -> Cmd msg
 port getTopoJson : Json.Value -> Cmd msg
-port getColorJson2 : List DataRecord -> Cmd msg
+port getColorJson2 : List (String, Float) -> Cmd msg
 
 -- port for listening for translated features from JavaScript
 port features : (List PathRecord -> msg) -> Sub msg
@@ -97,7 +99,7 @@ port colors   : (Json.Value -> msg) -> Sub msg
 type Msg
   = MorePlease
   | FetchSucceed2 Json.Value
-  | FetchDataSucceed Json.Value
+  | FetchDataSucceed (Dict String (Dict String (Dict String Float)))
   | IdPath (List PathRecord)
   | ColorMap Json.Value
   | FetchFail Http.Error
@@ -155,7 +157,7 @@ update msg model =
                      ,hour = model.hour + 1
                      ,colorData = rec}
                     -- and now go get the right colors for the retrieved data
-                    , getColorJson model.colorData model.plotvars)
+                    , getColorJson rec model.plotvars)
             Nothing ->
                 (model , Cmd.none)
 
@@ -333,7 +335,7 @@ sumDataValues griddata plotvars =
 
 getColorJson : Dict String (Dict String (Dict String Float)) -> List String -> Cmd Msg
 getColorJson griddata plotvars  =
-   getColorJson2 (sumDataValues griddata plotvars)
+   getColorJson2 ( Dict.toList (sumDataValues griddata plotvars))
 
 
 

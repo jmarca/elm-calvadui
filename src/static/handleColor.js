@@ -1,6 +1,17 @@
 var d3 = require('d3')
 
+/**
+ * handleColor
+ *
+ * @param {Array[Array]} data the data to color.  An array of arrays.
+ *   Each of nested arrays has two values: first value is cellid, second
+ *   is the float value to use for assigning a color
+ * @param {} callback
+ * @returns {}
+ */
 function handleColor(data, callback){
+    //console.log('here in handle color')
+    // passed array of arrays.  Array[0] is cellid, array[1] is value
     var c = d3.scalePow().exponent(0.3)
             .domain([0, 300000]) // on one particular
     // hour,156354,
@@ -13,22 +24,8 @@ function handleColor(data, callback){
     var maxsum = 0
     data.forEach(function(row){
         // records of id:String, value:Numeric
-        var cellid = row.id
-    cellids.forEach(function(cellid){
-        var roaddata = json[cellid]
-        var roadtypes = Object.keys(roaddata)
-
-        // sum up sum_vmt and n_mt values
-        var sum = roadtypes.reduce(
-            function(prev,curr){
-                var val = 0
-                plotvars.forEach(function (k){
-                    if(roaddata[curr][k] !== undefined){
-                        val = +roaddata[curr][k]
-                    }
-                    return null})
-                return prev + val
-            }, 0)
+        var cellid = row[0]
+        var sum = row[1]
         maxsum = sum > maxsum ? sum : maxsum
         colormap[cellid] = rainbow(c(sum))
     })
