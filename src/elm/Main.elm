@@ -9,13 +9,14 @@ import Maybe exposing (..)
 import Svg exposing (..)
 import Svg.Attributes as SvgAttr exposing (..)
 import Json.Decode as Json exposing (..)
---import Json.Encode
+-- import Json.Encode
 import Task
 import Date exposing (Date, Day(..), day, dayOfWeek, month, year)
 import DatePicker exposing (defaultSettings)
 --import Date.Extra.Format as Format exposing (format, isoDateFormat,formatUtc, isoStringNoOffset)
 import Date.Extra.Core exposing (monthToInt)
 import Dict exposing (..)
+import Regex exposing (..)
 
 main : Program Flags
 main =
@@ -35,6 +36,22 @@ type alias PathRecord = {id : String, path : String}
 
 type alias DataRecord = { id: String, value : Float }
 
+-- PlotVars.  Problem with this is able to make mistakes, like
+-- plotting at the same time trucks and VMT
+type alias PlotVars =
+    { detectorbased : Bool
+    , hpmsBased : Bool
+    , hpmsHwys : Bool
+    , hpmsCounty : Bool
+    , hpmsCity : Bool
+    , hpmsVMT : Bool
+    , hpmsCombo : Bool
+    , hpmsSingle : Bool
+    , detectorVMT : Bool
+    , detectorHH : Bool
+    , detectorNHH : Bool
+    }
+
 type alias Model =
     {file : String
     ,records : Maybe (List PathRecord)
@@ -45,7 +62,7 @@ type alias Model =
     ,datePicker : DatePicker.DatePicker
     ,date : Maybe Date
     ,hour : Int
-    ,plotvars : List String
+    ,plotvars : PlotVars
     ,colorData : Dict String (Dict String (Dict String Float))
     }
 
@@ -74,7 +91,20 @@ init fl =
          , dataUrl = fl.dataUrl
          , records = Nothing
          , data = Nothing
-        , plotvars = ["sum_vmt","n_mt"]
+        , plotvars =
+              { detectorbased = True
+              , hpmsBased = True
+              , hpmsHwys = True
+              , hpmsCounty = True
+              , hpmsCity = True
+              , hpmsVMT = True
+              , hpmsCombo = False
+              , hpmsSingle = False
+              , detectorVMT = True
+              , detectorHH = False
+              , detectorNHH = False
+              }
+
          , datePicker = datePicker
          , date = Just initdate
          , hour = 8
@@ -321,19 +351,75 @@ getData model =
 getter : (Dict String Float) -> String -> Float -> Float
 getter  myd a start = start + (Maybe.withDefault 0.0 (Dict.get a myd))
 
-sumValues : List String -> Dict String Float -> Float -> Float
-sumValues mykeys mydict start = List.foldl (getter mydict) start mykeys
+sumValues : PlotVars -> Dict String Float -> Float -> Float
+sumValues pv mydict start =
+    let
+        filterDict = Dict.filter (dataTypeFilter pv) mydict
+        dplotlist = if pv.detectorbased
+                   then ( if pv.detectorVMT
+                          then ["n_mt"]
+                          else (
+                                if pv.detectorHH && pv.detectorNHH
+                                then ["hh_mt","nhh_mt"]
+                                else if pv.detectorHH then ["hh_mt"]
+                                     else if pv.detectorNHH then ["nhh_mt"]
+                                          else []
+                               )
+                        )
+                   else []
+        -- now to hpms conditions
+        plotlist = if pv.hpmsBased
+                   then (if pv.hpmsVMT
+                         then "sum_vmt" :: dplotlist
+                         else (
+                               if pv.hpmsSingle && pv.hpmsCombo
+                               then (List.append
+                                         ["sum_single_unit_mt"
+                                         ,"sum_combination_mt"]
+                                         dplotlist)
+                               else if pv.hpmsSingle
+                                    then "sum_single_unit_mt" :: dplotlist
+                                    else if pv.hpmsCombo
+                                         then "sum_combination_mt" :: dplotlist
+                                         else dplotlist
+                              )
+                        )
+                   else dplotlist
+
+-- fix this here, need to figure out semantics of using let with
+-- conditional processing.  what I want to do is say "if detector
+-- based and vmt, then plotlist = "n_mt" :: plotlist, etc
 
 
-gridReduce : List String -> String ->  (Dict String (Dict String Float) ) -> Float
-gridReduce mykeys gridid griddata =  List.foldl (sumValues mykeys) 0.0 (Dict.values griddata)
+    in
+        List.foldl (getter filterDict) start plotlist
 
-sumDataValues : Dict String (Dict String (Dict String Float)) -> List String -> Dict String Float
+-- examine data type (the second level string key, after the outer grid level
+dataTypeFilter : PlotVars -> String -> a -> Bool
+dataTypeFilter pv key _ =
+    let
+        isCO  = contains (regex "^CO\\s") key
+        isSHS = contains (regex "^SHS") key
+    in
+        -- check if key is to be displayed or not
+        case key of
+            "detector_based" -> pv.detectorbased
+            "RAMP" -> pv.hpmsBased -- always let through ramp if hpms is on
+            _ -> (isCO && pv.hpmsBased && pv.hpmsCounty) ||
+                 (isSHS && pv.hpmsBased && pv.hpmsHwys) ||
+                 ( (not isCO) && (not isSHS) &&  pv.hpmsBased && pv.hpmsCity )
+
+
+gridReduce : PlotVars -> String ->  (Dict String (Dict String Float) ) -> Float
+gridReduce pv gridid griddata =
+    List.foldl (sumValues pv) 0.0 (Dict.values griddata)
+
+sumDataValues : Dict String (Dict String (Dict String Float)) -> PlotVars -> Dict String Float
 sumDataValues griddata plotvars =
     Dict.map (gridReduce plotvars) griddata
 
 
-getColorJson : Dict String (Dict String (Dict String Float)) -> List String -> Cmd Msg
+getColorJson : Dict String (Dict String (Dict String Float)) -> PlotVars -> Cmd Msg
 getColorJson griddata plotvars  =
    getColorJson2 ( Dict.toList (sumDataValues griddata plotvars))
 

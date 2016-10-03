@@ -29,6 +29,7 @@ function handleColor(data, callback){
         maxsum = sum > maxsum ? sum : maxsum
         colormap[cellid] = rainbow(c(sum))
     })
+    console.log(maxsum)
     return callback(null,colormap)
 }
 module.exports = handleColor
