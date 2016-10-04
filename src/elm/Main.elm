@@ -135,7 +135,8 @@ type Msg
   | FetchFail Http.Error
   | ToDatePicker DatePicker.Msg
   | Hour String
-
+  | DetectorBased
+  | HpmsBased
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -165,6 +166,20 @@ update msg model =
 
     MorePlease ->
         ({model | fetchingColors = True} , getData model)
+
+    DetectorBased ->
+        let pvars = model.plotvars
+            dvars = {pvars | detectorbased = (not pvars.detectorbased)}
+        in
+            ({model | plotvars = dvars}
+            , getColorJson model.colorData dvars)
+
+    HpmsBased ->
+        let pvars = model.plotvars
+            dvars = {pvars | hpmsBased = (not pvars.hpmsBased)}
+        in
+            ({model | plotvars = dvars}
+            , getColorJson model.colorData dvars)
 
 
     FetchSucceed2 rec ->
@@ -253,40 +268,62 @@ svgpath2 colordata entry =
                          , SvgAttr.d entry.path][]
 
 
+whatToPlot : Model -> Html Msg
+whatToPlot model =
+    let
+        detectorActive = True -- placeholder for other things
+    in
+        div [Attr.class "plotbuttons"]
+            [button
+                 [ Attr.class (if model.plotvars.detectorbased
+                               then "detectorbased on"
+                               else "detectorbased off")
+                 , onClick DetectorBased]
+                 [ Html.text ("detector based data")]
+            , button
+                 [ Attr.class (if model.plotvars.hpmsBased
+                               then "hpmsbased on"
+                               else "hpmsbased off")
+                 , onClick HpmsBased]
+                 [ Html.text ("hpms based data")]
+            ]
+
+
 
 mapcontrol : Model -> Html Msg
 mapcontrol model =
-            let
-                currday = case model.date of
-                              Just date ->
-                                  let
-                                      y = (toString (Date.year date))
-                                      m= (pad (monthToInt (Date.month date)))
-                                      d  = (pad (Date.day date))
-                                      h = (pad model.hour)
-                                  in
-                                      y++"-"++m++"-"++d++" "++h++":00"
-                              Nothing ->
-                                  "No date selected"
-            in
-                div [Attr.class "mapcontrol col"]
-                    [h2 []
-                         [Html.text "Pick date and hour to display on map"]
-                    ,h2 [] [ Html.text <| currday ]
-                    ,label[][Html.text "Date: "
-                                  ,DatePicker.view model.datePicker
-                                  |> App.map ToDatePicker
-                                     ]
-                    ,label [] [Html.text "Hour: "
-                                    , input [ Attr.type' "number"
-                                            , Attr.value (pad model.hour)
-                                            , Attr.min "0"
-                                            , Attr.max "23"
-                                            , Attr.step "1"
-                                            , onInput Hour][]
-                              ]
-                    ,button [ Attr.disabled model.fetchingColors, onClick MorePlease ] [ Html.text ("get date")]
+    let
+        currday = case model.date of
+                      Just date ->
+                          let
+                              y = (toString (Date.year date))
+                              m= (pad (monthToInt (Date.month date)))
+                              d  = (pad (Date.day date))
+                              h = (pad model.hour)
+                          in
+                              y++"-"++m++"-"++d++" "++h++":00"
+                      Nothing ->
+                          "No date selected"
+    in
+        div [Attr.class "mapcontrol col"]
+            [h2 []
+                 [Html.text "Pick date and hour to display on map"]
+            ,h2 [] [ Html.text <| currday ]
+            ,label[][Html.text "Date: "
+                    ,DatePicker.view model.datePicker
+                    |> App.map ToDatePicker
                     ]
+            ,label [] [Html.text "Hour: "
+                      , input [ Attr.type' "number"
+                              , Attr.value (pad model.hour)
+                              , Attr.min "0"
+                              , Attr.max "23"
+                              , Attr.step "1"
+                              , onInput Hour][]
+                      ]
+            ,button [ Attr.disabled model.fetchingColors, onClick MorePlease ] [ Html.text ("get date")]
+            ,whatToPlot model
+            ]
 
 
 
