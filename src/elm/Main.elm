@@ -527,7 +527,7 @@ sumValues pv dk mydict start =
     let
         isCO  = contains (regex "^CO\\s") dk && pv.hpmsBased && pv.hpmsCounty
         isSHS = contains (regex "^SHS") dk && pv.hpmsBased && pv.hpmsHwys
-        isRAMP = "RAMP" == dk && pv.hpmsBased
+        isRAMP = "RAMP" == dk && pv.hpmsBased  && pv.hpmsHwys
         isCity = pv.hpmsBased && pv.hpmsCity && (not (isCO && isSHS && isRAMP))
         isDB = "detector_based" == dk && pv.detectorbased
     in
@@ -574,20 +574,6 @@ sumValues pv dk mydict start =
                  List.foldl (getter mydict) start plotlist
                  -- List.foldl (getter filterDict) start plotlist
 
--- examine data type (the second level string key, after the outer grid level
-dataTypeFilter : PlotVars -> String -> a -> Bool
-dataTypeFilter pv key _ =
-    let
-        isCO  = contains (regex "^CO\\s") key
-        isSHS = contains (regex "^SHS") key
-    in
-        -- check if key is to be displayed or not
-        case key of
-            "detector_based" -> pv.detectorbased
-            "RAMP" -> pv.hpmsBased -- always let through ramp if hpms is on
-            _ -> (isCO && pv.hpmsBased && pv.hpmsCounty) ||
-                 (isSHS && pv.hpmsBased && pv.hpmsHwys) ||
-                 ( (not isCO) && (not isSHS) &&  pv.hpmsBased && pv.hpmsCity )
 
 
 gridReduce : PlotVars -> String ->  (Dict String (Dict String Float) ) -> Float
