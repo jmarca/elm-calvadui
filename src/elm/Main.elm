@@ -334,92 +334,95 @@ whatToPlot model =
         detectorActive = True -- placeholder for other things
     in
         div [Attr.class "plotbuttons"]
-        [ div [Attr.class "toplevel hpms"]
-           [button
-                 [ Attr.class (if model.plotvars.hpmsBased
+        [div [Attr.class "btn-container"]
+             [div [Attr.class "toplevel hpms row"]
+                  [button
+                       [ Attr.class (if model.plotvars.hpmsBased
                                then "btn hpmsbased active"
                                else "btn hpmsbased off")
-                 , onClick HpmsBased]
-                 [ Html.text ("hpms based data")]
-            ]
-        ,div [Attr.class "hpmsbuttons"]
-            [ button
-                  [Attr.disabled (not model.plotvars.hpmsBased)
-                   ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsHwys
-                                then "btn hpmshwys active"
-                                else "btn hpmshwys off")
-                  , onClick HpmsHwys]
-                  [ Html.text ("State Highways")]
-            , button
-                  [Attr.disabled (not model.plotvars.hpmsBased)
-                   ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCity
-                                then "btn hpmscity active"
-                                else "btn hpmscity off")
-                  , onClick HpmsCity]
-                  [ Html.text ("City Streets")]
-            , button
-                  [Attr.disabled (not model.plotvars.hpmsBased)
-                   ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCounty
-                                then "btn hpmscounty active"
-                                else "btn hpmscounty off")
-                  , onClick HpmsCounty]
-                  [ Html.text ("County Streets")]
-            ]
-        ,div [Attr.class "hpmsdata"]
-            [ button
-                  [Attr.disabled (not model.plotvars.hpmsBased)
-                   ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsVMT
-                                then "btn hpmsVMT active"
-                                else "btn hpmsVMT off")
-                  , onClick HpmsVMT]
-                  [ Html.text ("HPMS-based VMT")]
-            , button
-                  [Attr.disabled  (model.plotvars.hpmsVMT || (not model.plotvars.hpmsBased))
-                   ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCombo
-                                then "btn hpmscombo active"
-                                else "btn hpmscombo off")
-                  , onClick HpmsCombo]
-                  [ Html.text ("Combination Truck VMT")]
-            , button
-                  [Attr.disabled  (model.plotvars.hpmsVMT || (not model.plotvars.hpmsBased))
-                   ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsSingle
-                                then "btn hpmssingle active"
-                                else "btn hpmssingle off")
-                  , onClick HpmsSingle]
-                  [ Html.text ("Single Unit Truck VMT")]
-            ]
-        ,div [Attr.class "toplevel detector"]
-            [button
-                 [ Attr.class (if model.plotvars.detectorbased
-                               then "btn detectorbased active"
-                               else "btn detectorbased off")
-                 , onClick DetectorBased]
-                 [ Html.text ("detector based data")]
-            ]
-        ,div [Attr.class "detectordata"]
-            [ button
-                  [Attr.disabled (not model.plotvars.detectorbased)
-                   ,Attr.class (if model.plotvars.detectorbased && model.plotvars.detectorVMT
-                                then "btn detectorVMT active"
-                                else "btn detectorVMT off")
-                  , onClick DetectorVMT]
-                  [ Html.text ("detector-based VMT")]
-            , button
-                  [Attr.disabled (model.plotvars.detectorVMT || (not  model.plotvars.detectorbased))
-                   ,Attr.class (if model.plotvars.detectorHH
-                                then "btn detectorhh active"
-                                else "btn detectorhh off")
-                  , onClick DetectorHH]
-                  [ Html.text ("Heavy Heavy-Duty Truck VMT")]
-            , button
-                  [Attr.disabled (model.plotvars.detectorVMT || (not model.plotvars.detectorbased))
-                   ,Attr.class (if model.plotvars.detectorNHH
-                                then "btn detectorNHH active"
-                                else "btn detectorNHH off")
-                  , onClick DetectorNHH]
-                  [ Html.text ("Not Heavy Heavy-Duty Truck VMT")]
-            ]
-        ]
+                       , onClick HpmsBased]
+                       [ Html.text ("hpms based data")]
+                  ]
+             ,div [Attr.class "hpmsbuttons row"]
+                 [ button
+                       [Attr.disabled (not model.plotvars.hpmsBased)
+                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsHwys
+                                    then "btn hpmshwys active"
+                                    else "btn hpmshwys off")
+                       , onClick HpmsHwys]
+                       [ Html.text ("State Highways")]
+                 , button
+                       [Attr.disabled (not model.plotvars.hpmsBased)
+                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCity
+                                    then "btn hpmscity active"
+                                    else "btn hpmscity off")
+                       , onClick HpmsCity]
+                       [ Html.text ("City Streets")]
+                 , button
+                       [Attr.disabled (not model.plotvars.hpmsBased)
+                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCounty
+                                    then "btn hpmscounty active"
+                                    else "btn hpmscounty off")
+                       , onClick HpmsCounty]
+                       [ Html.text ("County Streets")]
+                 ]
+             ,div [Attr.class "hpmsdata row"]
+                 [ button
+                       [Attr.disabled (not model.plotvars.hpmsBased)
+                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsVMT
+                                    then "btn hpmsVMT active"
+                                    else "btn hpmsVMT off")
+                       , onClick HpmsVMT]
+                       [ Html.text ("HPMS-based VMT")]
+                 , button
+                       [Attr.disabled  (model.plotvars.hpmsVMT || (not model.plotvars.hpmsBased))
+                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCombo
+                                    then "btn hpmscombo active"
+                                    else "btn hpmscombo off")
+                       , onClick HpmsCombo]
+                       [ Html.text ("Combination Truck VMT")]
+                 , button
+                       [Attr.disabled  (model.plotvars.hpmsVMT || (not model.plotvars.hpmsBased))
+                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsSingle
+                                    then "btn hpmssingle active"
+                                    else "btn hpmssingle off")
+                       , onClick HpmsSingle]
+                       [ Html.text ("Single Unit Truck VMT")]
+                 ]
+                 ]
+        ,div [Attr.class "btn-container"]
+            [div [Attr.class "toplevel detector row"]
+                 [button
+                      [ Attr.class (if model.plotvars.detectorbased
+                                    then "btn detectorbased active"
+                                    else "btn detectorbased off")
+                      , onClick DetectorBased]
+                      [ Html.text ("detector based data")]
+                 ]
+            ,div [Attr.class "detectordata row"]
+                [ button
+                      [Attr.disabled (not model.plotvars.detectorbased)
+                      ,Attr.class (if model.plotvars.detectorbased && model.plotvars.detectorVMT
+                                   then "btn detectorVMT active"
+                                   else "btn detectorVMT off")
+                      , onClick DetectorVMT]
+                      [ Html.text ("detector-based VMT")]
+                , button
+                      [Attr.disabled (model.plotvars.detectorVMT || (not  model.plotvars.detectorbased))
+                      ,Attr.class (if model.plotvars.detectorHH
+                                   then "btn detectorhh active"
+                                   else "btn detectorhh off")
+                      , onClick DetectorHH]
+                      [ Html.text ("Heavy Heavy-Duty Truck VMT")]
+                , button
+                      [Attr.disabled (model.plotvars.detectorVMT || (not model.plotvars.detectorbased))
+                      ,Attr.class (if model.plotvars.detectorNHH
+                                   then "btn detectorNHH active"
+                                   else "btn detectorNHH off")
+                      , onClick DetectorNHH]
+                      [ Html.text ("Not Heavy Heavy-Duty Truck VMT")]
+                ]
+            ]]
 
 
 

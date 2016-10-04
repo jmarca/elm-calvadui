@@ -29,7 +29,7 @@ body {
   background-color: $color-teal-base;
 }
 
-div.container {
+div.container , div.btn-container{
     diplay: flex;
     flex-direction:  column;
 }
@@ -38,6 +38,17 @@ div.container div.row {
     justify-content: space-between;
     align-items: flex-start;
     margin: 10px;
+}
+
+div.btn-container div.row {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin: 4px;
+}
+
+div.btn-container div.row.toplevel {
+    margin-top: 24px;
 }
 
 .mapapp {
