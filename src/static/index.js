@@ -17,7 +17,10 @@ var app =
             ,'day':11
         })
 
-app.ports.getColorJson.subscribe(function(data){
+app.ports.getColorJson2.subscribe(function(data){
+    // console.log('got data with length:',data.length)
+    // console.log('data is ', data)
+
     handleColor(data,
                 function(e,colormap){
                     app.ports.colors.send(colormap)
