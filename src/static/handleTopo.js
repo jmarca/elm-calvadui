@@ -25,6 +25,7 @@ function zoomed(projection,raster_g,vector_g,tile){
     return function(){
 
         var transform = d3.event.transform
+
         // console.log('transform is',transform)
         // console.log('original transform is', [k,tx,ty])
 
@@ -33,7 +34,7 @@ function zoomed(projection,raster_g,vector_g,tile){
         // transform grids, easy
 
         vector_g.attr("transform",transform)
-
+                .style("stroke-width", 1 / transform.k);
         // now handle tiles
         var newtiles = tile
                 .scale( adjs.k )
