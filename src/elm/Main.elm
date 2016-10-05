@@ -550,7 +550,8 @@ view model =
                      [div [Attr.class "row"][
                            div [Attr.class "mapapp col"][
                                 Svg.svg [  width "500", height "536"][
-                                     Svg.g [ overflow "hidden", width "500", height "500"][]
+                                     Svg.g [ class "tile", overflow "hidden", width "500", height "500"][]
+                                    ,Svg.g [ class "grid", overflow "hidden", width "500", height "500"][]
                                     ]],
                            (mapcontrol model)
                                ]])
@@ -559,7 +560,8 @@ view model =
                       [div [Attr.class "row"][
                             div [Attr.class "mapapp col"][
                                  Svg.svg [  width "500", height "536"][
-                                      Svg.g [ width "500", height "500"] (svgpaths2 records model.data)
+                                      Svg.g [ class "tile", width "500", height "500"][]
+                                     ,Svg.g [ class "grid", width "500", height "500"] (svgpaths2 records model.data)
                                      ,Svg.rect[ x "0"
                                               , y "500"
                                               , width "500"
