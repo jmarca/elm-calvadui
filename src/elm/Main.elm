@@ -530,7 +530,7 @@ mapcontrol model =
                       ,input [ Attr.type' "range"
                              , id "volrange"
                              , Attr.min "0.01"
-                             , Attr.max "2"
+                             , Attr.max "1"
                              , Attr.step "0.01"
                              , Attr.value (toString model.scaleExponent)
                              , Attr.name "exponentrange"
