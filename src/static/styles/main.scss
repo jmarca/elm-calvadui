@@ -105,13 +105,15 @@ div.goodday{
 .grid {
     fill: shade($color-teal-base, 20%);
     stroke-width: 0;
-    stroke-opacity: 0.5
+    stroke-opacity: 0.5;
+    fill-opacity: 0.5;
+
 }
 
 .grid:hover {
 }
 .grid.colored:hover {
-    stroke-width: 0.1%;
+    stroke-width: 0.05%;
 }
 .grid.active {
     fill: #449;
