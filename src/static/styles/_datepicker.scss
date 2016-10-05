@@ -8,7 +8,10 @@ $datepicker-border-color: #CCC;
 $datepicker-row-border-color: #F2F2F2;
 
 .#{$datepicker-ns}container {
-  position: relative;
+    position: relative;
+    display: inline-block;
+    max-width: 150px;
+    margin: 0px 20px 0px 0px;
 }
 
 .#{$datepicker-ns}input:focus {

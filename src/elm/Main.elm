@@ -60,12 +60,19 @@ type alias Model =
     ,fetchingColors : Bool
     ,showingDate : Maybe String
     ,datePicker : DatePicker.DatePicker
+    ,baddate : Maybe String
     ,date : Maybe Date
     ,hour : Int
     ,plotvars : PlotVars
     ,colorData : Dict String (Dict String (Dict String Float))
+    ,scaleDomain : Int
+    ,scaleExponent : Float
     }
 
+type alias ColorMessages =
+    {maxdomain : Int
+    ,exponent : Float
+    ,data : List (String, Float)}
 
 type alias Flags =
     {mapfile : String
@@ -105,12 +112,15 @@ init fl =
               , detectorNHH   = False --  False
               }
 
-         , datePicker = datePicker
-         , date = Just initdate
-         , hour = 8
-                  , colorData = Dict.empty
-         , fetchingColors = False
-         , showingDate = Nothing}
+        , datePicker = datePicker
+        , baddate = Nothing
+        , date = Just initdate
+        , hour = 8
+        , colorData = Dict.empty
+        , fetchingColors = False
+        , showingDate = Nothing
+        , scaleDomain = 190000
+        , scaleExponent = 0.3}
          ! [ Cmd.batch([getIt2 fl.mapfile
                        , Cmd.map ToDatePicker datePickerFx
                        ])]
@@ -120,7 +130,7 @@ init fl =
 
 port d3Update : (List String) -> Cmd msg
 port getTopoJson : Json.Value -> Cmd msg
-port getColorJson2 : List (String, Float) -> Cmd msg
+port getColorJson2 : ColorMessages  -> Cmd msg
 
 -- port for listening for translated features from JavaScript
 port features : (List PathRecord -> msg) -> Sub msg
@@ -133,6 +143,7 @@ type Msg
   | IdPath (List PathRecord)
   | ColorMap Json.Value
   | FetchFail Http.Error
+  | FetchDataFail Http.Error
   | ToDatePicker DatePicker.Msg
   | Hour String
   | DetectorBased
@@ -146,6 +157,8 @@ type Msg
   | DetectorVMT
   | DetectorHH
   | DetectorNHH
+  | ScaleDomain String
+  | ScaleExponent String
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -181,30 +194,30 @@ update msg model =
             dvars = {pvars | detectorbased = (not pvars.detectorbased)}
         in
             ({model | plotvars = dvars}
-            , getColorJson model.colorData dvars)
+            , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
 
     HpmsBased ->
         let pvars = model.plotvars
             dvars = {pvars | hpmsBased = (not pvars.hpmsBased)}
         in
             ({model | plotvars = dvars}
-            , getColorJson model.colorData dvars)
+            , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
 
     HpmsHwys      ->
         let pvars = model.plotvars
             dvars = {pvars | hpmsHwys = (not pvars.hpmsHwys)}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
     HpmsCounty    ->
         let pvars = model.plotvars
             dvars = {pvars | hpmsCounty = (not pvars.hpmsCounty)}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
     HpmsCity      ->
         let pvars = model.plotvars
             dvars = {pvars | hpmsCity = (not pvars.hpmsCity)}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
     HpmsVMT       ->
         let pvars = model.plotvars
             hpmsvmtNewState = (not pvars.hpmsVMT)
@@ -212,17 +225,17 @@ update msg model =
                     then {pvars | hpmsVMT=True, hpmsCombo=False, hpmsSingle=False}
                     else {pvars | hpmsVMT=False, hpmsCombo=True, hpmsSingle=True}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
     HpmsCombo     ->
         let pvars = model.plotvars
             dvars = {pvars | hpmsCombo = (not pvars.hpmsCombo)}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
     HpmsSingle    ->
         let pvars = model.plotvars
             dvars = {pvars | hpmsSingle = (not pvars.hpmsSingle)}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
     DetectorVMT   ->
         let pvars = model.plotvars
             dvmtNewState = (not pvars.detectorVMT)
@@ -230,17 +243,39 @@ update msg model =
                     then {pvars | detectorVMT=True, detectorHH=False, detectorNHH=False}
                     else {pvars | detectorVMT=False, detectorHH=True, detectorNHH=True}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
     DetectorHH    ->
         let pvars = model.plotvars
             dvars = {pvars | detectorHH = (not pvars.detectorHH)}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
     DetectorNHH   ->
         let pvars = model.plotvars
             dvars = {pvars | detectorNHH = (not pvars.detectorNHH)}
         in
-        ({model | plotvars = dvars} , getColorJson model.colorData dvars)
+        ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
+
+    ScaleDomain rec ->
+        let
+            newmax = Result.withDefault model.scaleDomain (String.toInt rec)
+        in
+            ({model | scaleDomain = newmax}
+            ,getColorJson model.colorData model.plotvars newmax model.scaleExponent)
+
+
+    ScaleExponent rec ->
+        let
+            newExponent = Result.withDefault model.scaleExponent (String.toFloat rec)
+        in
+            ({model | scaleExponent = newExponent}
+            ,getColorJson model.colorData model.plotvars model.scaleDomain newExponent)
+
+
+    IdPath newFeatures ->
+        ({model | records = Just newFeatures}, Cmd.none)
+
+    ColorMap newData ->
+        ({model | data = (Result.toMaybe(Json.decodeValue colorDictionary newData))}, Cmd.none)
 
     FetchSucceed2 rec ->
         (model, getTopoJson rec)
@@ -259,21 +294,35 @@ update msg model =
                     ({model |
                       fetchingColors = False
                      ,showingDate = Just newDateFetched
+                     ,baddate=Nothing
                      ,hour = model.hour + 1
                      ,colorData = rec}
                     -- and now go get the right colors for the retrieved data
-                    , getColorJson rec model.plotvars)
+                    , getColorJson rec model.plotvars  model.scaleDomain model.scaleExponent)
             Nothing ->
                 (model , Cmd.none)
 
-    IdPath newFeatures ->
-        ({model | records = Just newFeatures}, Cmd.none)
+    FetchDataFail e ->
+        case model.date of
+            Just date ->
+                let
+                    y = (toString (Date.year date))
+                    m = (pad (monthToInt (Date.month date)))
+                    d  = (pad (Date.day date))
+                    h = (pad model.hour)
+                    newDateFailed =  y++"-"++m++"-"++d++" "++h++":00"
+                in
+                    -- let the UI know the date has no data
+                ({model| baddate=Just newDateFailed
+                         ,fetchingColors = False}, Cmd.none)
+            Nothing ->
+                (model, Cmd.none)
 
-    ColorMap newData ->
-        ({model | data = (Result.toMaybe(Json.decodeValue colorDictionary newData))}, Cmd.none)
-
-    FetchFail _ ->
-        (model, Cmd.none)
+    FetchFail e ->
+        let
+            f = Debug.log "HTTP Error: " e
+        in
+            (model, Cmd.none)
 
 
 -- SUBSCRIPTIONS
@@ -440,6 +489,12 @@ mapcontrol model =
                               y++"-"++m++"-"++d++" "++h++":00"
                       Nothing ->
                           "No date selected"
+        baddate = case  model.baddate of
+                      Nothing -> ""
+                      Just bd -> "No data for " ++ bd
+        badclass = case model.baddate of
+                       Nothing -> "goodday"
+                       _       -> "badday"
     in
         div [Attr.class "mapcontrol col"]
             [h2 []
@@ -458,7 +513,30 @@ mapcontrol model =
                               , onInput Hour][]
                       ]
             ,button [ Attr.disabled model.fetchingColors, onClick MorePlease ] [ Html.text ("get date")]
+            ,div [Attr.class badclass][Html.text baddate]
             ,whatToPlot model
+            ,label [class "slider"] [Html.text ("Color Scale max: "++ (toString model.scaleDomain))
+                      ,input [ Attr.type' "range"
+                             , id "volrange"
+                             , Attr.min "1"
+                             , Attr.max "300000"
+                             , Attr.step "100"
+                             , Attr.value (toString model.scaleDomain)
+                             , Attr.name "volrange"
+                             --, Attr.list "volranges"
+                             , onInput ScaleDomain][]
+                          ]
+            ,label [class "slider"] [Html.text ("Color scale exponent: "++ (toString model.scaleExponent))
+                      ,input [ Attr.type' "range"
+                             , id "volrange"
+                             , Attr.min "0.01"
+                             , Attr.max "2"
+                             , Attr.step "0.01"
+                             , Attr.value (toString model.scaleExponent)
+                             , Attr.name "exponentrange"
+                             , onInput ScaleExponent][]
+                          ]
+
             ]
 
 
@@ -518,7 +596,7 @@ getData model =
                 filePath = y++"_"++m++"_"++d++"_"++h++"00.json"
                 url = model.dataUrl ++ "/" ++ filePath
             in
-                Task.perform FetchFail FetchDataSucceed (Http.get gridDataDictionary url)
+                Task.perform FetchDataFail FetchDataSucceed (Http.get gridDataDictionary url)
 
 
 getter : (Dict String Float) -> String -> Float -> Float
@@ -592,9 +670,15 @@ dropZeros k v =
     (not (v == 0.0))
 
 
-getColorJson : Dict String (Dict String (Dict String Float)) -> PlotVars -> Cmd Msg
-getColorJson griddata plotvars  =
-   getColorJson2 ( Dict.toList (Dict.filter dropZeros (sumDataValues griddata plotvars)))
+getColorJson : Dict String (Dict String (Dict String Float)) -> PlotVars -> Int -> Float -> Cmd Msg
+getColorJson griddata plotvars maxdomain exponent =
+    let
+        datablob = ( Dict.toList (Dict.filter dropZeros (sumDataValues griddata plotvars)))
+        mxd = maxdomain
+    in
+        getColorJson2 { maxdomain = mxd
+                      , exponent = exponent
+                      , data = datablob}
 
 
 

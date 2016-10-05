@@ -17,11 +17,18 @@ var app =
             ,'day':11
         })
 
-app.ports.getColorJson2.subscribe(function(data){
+/**
+ * getColorJson2 handler
+ * @param {Object} args
+ * @param {Integer} args.maxdomain max domain range
+ * @param {Array[String,Number]} args.data the data to colorize
+ * @returns {}
+ */
+app.ports.getColorJson2.subscribe(function(args){
     // console.log('got data with length:',data.length)
     // console.log('data is ', data)
 
-    handleColor(data,
+    handleColor(args.data,args.maxdomain, args.exponent,
                 function(e,colormap){
                     app.ports.colors.send(colormap)
                     return null

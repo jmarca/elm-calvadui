@@ -9,11 +9,11 @@ var d3 = require('d3')
  * @param {} callback
  * @returns {}
  */
-function handleColor(data, callback){
-    //console.log('here in handle color')
+function handleColor(data, maxdomain, exponent, callback){
+    console.log('here in handle color with maxdomain = ',maxdomain, ' exponent = ', exponent )
     // passed array of arrays.  Array[0] is cellid, array[1] is value
-    var c = d3.scalePow().exponent(0.3)
-            .domain([0, 190000]) // on one particular
+    var c = d3.scalePow().exponent(exponent)
+            .domain([0, maxdomain]) // on one particular
     // hour,156354,
     // so doubling that
             .range([0,1])
