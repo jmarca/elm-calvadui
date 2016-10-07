@@ -514,8 +514,8 @@ mapcontrol model =
             ,label [] [Html.text "Hour: "
                       , input [ Attr.type' "number"
                               , Attr.value (pad model.hour)
-                              , Attr.min "0"
-                              , Attr.max "23"
+                              , Attr.min "-1"
+                              , Attr.max "24"
                               , Attr.step "1"
                               , onInput NewHour][]
                       ]
