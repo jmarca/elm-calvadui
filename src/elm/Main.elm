@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.App as App
 import Html.Attributes as Attr
 import Html.Events exposing (..)
+import Cmd.Extra
 import Http
 import Maybe exposing (..)
 import Svg exposing (..)
@@ -15,6 +16,7 @@ import Date exposing (Date, Day(..), day, dayOfWeek, month, year)
 import DatePicker exposing (defaultSettings)
 --import Date.Extra.Format as Format exposing (format, isoDateFormat,formatUtc, isoStringNoOffset)
 import Date.Extra.Core exposing (monthToInt)
+import Date.Extra.Period as Period exposing (Period (..))
 import Dict exposing (..)
 import Regex exposing (..)
 
@@ -61,7 +63,7 @@ type alias Model =
     ,showingDate : Maybe String
     ,datePicker : DatePicker.DatePicker
     ,baddate : Maybe String
-    ,date : Maybe Date
+    ,date : Date
     ,hour : Int
     ,plotvars : PlotVars
     ,colorData : Dict String (Dict String (Dict String Float))
@@ -79,13 +81,14 @@ type alias Flags =
     ,dataUrl : String
     ,year : Int
     ,month : Int
-    ,day : Int}
+    ,day : Int
+    ,hour: Int}
 
 
 init: Flags -> (Model, Cmd Msg)
 init fl =
     let
-        initdate =  (mkDate fl.year fl.month fl.day)
+        initdate =  (mkDate fl.year fl.month fl.day fl.hour)
         ( datePicker, datePickerFx ) =
             DatePicker.init
                 { defaultSettings
@@ -114,8 +117,8 @@ init fl =
 
         , datePicker = datePicker
         , baddate = Nothing
-        , date = Just initdate
-        , hour = 8
+        , date = initdate
+        , hour = (Date.hour initdate) -- should be same as fl.hour
         , colorData = Dict.empty
         , fetchingColors = False
         , showingDate = Nothing
@@ -145,7 +148,7 @@ type Msg
   | FetchFail Http.Error
   | FetchDataFail Http.Error
   | ToDatePicker DatePicker.Msg
-  | Hour String
+  | NewHour String
   | DetectorBased
   | HpmsBased
   | HpmsHwys
@@ -163,6 +166,27 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    NewHour rec ->
+        let
+            newhour = Result.withDefault model.hour (String.toInt
+                                                         (Debug.log "newhour" rec))
+            diffhour = newhour - model.hour
+            newdate = (Period.add Period.Hour diffhour model.date)
+            ( datePicker, datePickerFx ) =
+                DatePicker.init
+                    { defaultSettings
+                        | inputClassList = [ ( "form-control", True ) ]
+                        , inputName = Just "date"
+                        , pickedDate = Just newdate
+                    }
+
+        in
+        ({model | hour = Date.hour newdate
+                 ,date = newdate
+                 ,datePicker = datePicker
+         }
+        , Cmd.map ToDatePicker datePickerFx)
+
     ToDatePicker rec ->
             let
                 ( datePicker, datePickerFx, mDate ) =
@@ -173,8 +197,7 @@ update msg model =
                         Nothing ->
                             model.date
 
-                        dd ->
-                            dd
+                        Just dd -> dd
             in
              { model
                   | date = date
@@ -182,9 +205,6 @@ update msg model =
               }
              ! [ Cmd.map ToDatePicker datePickerFx]
 
-    Hour rec ->
-        ({model | hour = Result.withDefault model.hour (String.toInt rec)}
-        ,Cmd.none)
 
     MorePlease ->
         ({model | fetchingColors = True} , getData model)
@@ -281,42 +301,34 @@ update msg model =
         (model, getTopoJson rec)
 
     FetchDataSucceed rec ->
-        case model.date of
-            Just date ->
-                let
-                    y = (toString (Date.year date))
-                    m = (pad (monthToInt (Date.month date)))
-                    d  = (pad (Date.day date))
-                    h = (pad model.hour)
-                    newDateFetched =  y++"-"++m++"-"++d++" "++h++":00"
-                in
-                    -- let the UI know the data is back
-                    ({model |
-                      fetchingColors = False
-                     ,showingDate = Just newDateFetched
-                     ,baddate=Nothing
-                     ,hour = model.hour + 1
-                     ,colorData = rec}
-                    -- and now go get the right colors for the retrieved data
-                    , getColorJson rec model.plotvars  model.scaleDomain model.scaleExponent)
-            Nothing ->
-                (model , Cmd.none)
+        let
+            y = (toString (Date.year model.date))
+            m = (pad (monthToInt (Date.month model.date)))
+            d  = (pad (Date.day model.date))
+            h = (pad model.hour)
+            newDateFetched =  y++"-"++m++"-"++d++" "++h++":00"
+        in
+            -- let the UI know the data is back
+            ({model |
+                  fetchingColors = False
+             ,showingDate = Just newDateFetched
+             ,baddate=Nothing
+             ,colorData = rec}
+            -- and now go get the right colors for the retrieved data
+            ! [ getColorJson rec model.plotvars  model.scaleDomain model.scaleExponent
+              ,Cmd.Extra.message (NewHour (toString (model.hour + 1) ))])
 
     FetchDataFail e ->
-        case model.date of
-            Just date ->
-                let
-                    y = (toString (Date.year date))
-                    m = (pad (monthToInt (Date.month date)))
-                    d  = (pad (Date.day date))
-                    h = (pad model.hour)
-                    newDateFailed =  y++"-"++m++"-"++d++" "++h++":00"
-                in
-                    -- let the UI know the date has no data
-                ({model| baddate=Just newDateFailed
-                         ,fetchingColors = False}, Cmd.none)
-            Nothing ->
-                (model, Cmd.none)
+        let
+            y = (toString (Date.year model.date))
+            m = (pad (monthToInt (Date.month model.date)))
+            d  = (pad (Date.day model.date))
+            h = (pad model.hour)
+            newDateFailed =  y++"-"++m++"-"++d++" "++h++":00"
+        in
+            -- let the UI know the date has no data
+            ({model| baddate=Just newDateFailed
+             ,fetchingColors = False}, Cmd.none)
 
     FetchFail e ->
         let
@@ -478,17 +490,12 @@ whatToPlot model =
 mapcontrol : Model -> Html Msg
 mapcontrol model =
     let
-        currday = case model.date of
-                      Just date ->
-                          let
-                              y = (toString (Date.year date))
-                              m= (pad (monthToInt (Date.month date)))
-                              d  = (pad (Date.day date))
-                              h = (pad model.hour)
-                          in
-                              y++"-"++m++"-"++d++" "++h++":00"
-                      Nothing ->
-                          "No date selected"
+        currday = let y = (toString (Date.year model.date))
+                      m= (pad (monthToInt (Date.month model.date)))
+                      d  = (pad (Date.day model.date))
+                      h = (pad model.hour)
+                  in
+                      y++"-"++m++"-"++d++" "++h++":00"
         baddate = case  model.baddate of
                       Nothing -> ""
                       Just bd -> "No data for " ++ bd
@@ -510,7 +517,7 @@ mapcontrol model =
                               , Attr.min "0"
                               , Attr.max "23"
                               , Attr.step "1"
-                              , onInput Hour][]
+                              , onInput NewHour][]
                       ]
             ,button [ Attr.disabled model.fetchingColors, onClick MorePlease ] [ Html.text ("get date")]
             ,div [Attr.class badclass][Html.text baddate]
@@ -587,13 +594,10 @@ view model =
 
 getData : Model -> Cmd Msg
 getData model =
-    case model.date of
-        Nothing -> Cmd.none
-        Just date ->
-            let
-                y = (toString (Date.year date))
-                m= (pad (monthToInt (Date.month date)))
-                d  = (pad (Date.day date))
+    let
+                y = (toString (Date.year model.date))
+                m= (pad (monthToInt (Date.month model.date)))
+                d  = (pad (Date.day model.date))
                 h = (pad model.hour)
                 filePath = y++"/"++m++"/"++d++"/"++h++".json"
                 url = model.dataUrl ++ "/" ++ filePath
@@ -708,13 +712,16 @@ colorDictionary = dict Json.string
 
 -- this mkDate/unsafeDate  hack idiom copied from one of the date libraries I looked at
 
-mkDate : Int -> Int -> Int -> Date
-mkDate year month day =
+mkDate : Int -> Int -> Int -> Int -> Date
+mkDate year month day hour=
     toString year
         ++ "/"
         ++ pad month
         ++ "/"
         ++ pad day
+        ++ " "
+        ++ pad hour
+        ++ ":00"
         |> unsafeDate
 
 

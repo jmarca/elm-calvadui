@@ -40,10 +40,10 @@ function zoomed(projection,raster_g,vector_g,tile){
                 .scale( adjs.k )
                 .translate([ adjs.x
                              ,adjs.y ])
-        console.log('new scale',newtiles.scale())
-        console.log('new translate',newtiles.translate())
+        //console.log('new scale',newtiles.scale())
+        //console.log('new translate',newtiles.translate())
         var tiles = newtiles()
-        console.log(tiles)
+        //console.log(tiles)
         var image = raster_g
                 .attr("transform", stringify(tiles.scale, tiles.translate))
                 .selectAll("image")
