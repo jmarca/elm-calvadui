@@ -116,10 +116,10 @@ if ( TARGET_ENV === 'production' ) {
           from: 'src/static/img/',
           to:   'static/img/'
         },
-        {
-          from: 'src/static/data/',
-          to:   'static/data/'
-        },
+        // {
+        //   from: 'src/static/data/',
+        //   to:   'static/data/'
+        // },
         {
           from: 'src/favicon.ico'
         },

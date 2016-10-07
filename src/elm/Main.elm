@@ -595,7 +595,7 @@ getData model =
                 m= (pad (monthToInt (Date.month date)))
                 d  = (pad (Date.day date))
                 h = (pad model.hour)
-                filePath = y++"_"++m++"_"++d++"_"++h++"00.json"
+                filePath = y++"/"++m++"/"++d++"/"++h++".json"
                 url = model.dataUrl ++ "/" ++ filePath
             in
                 Task.perform FetchDataFail FetchDataSucceed (Http.get gridDataDictionary url)
