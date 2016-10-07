@@ -485,55 +485,68 @@ whatToPlot model =
                 ]
             ]]
 
+datepickbuilder : Model -> Html Msg
+datepickbuilder model =
+    let  y = (toString (Date.year model.date))
+         m = (pad (monthToInt (Date.month model.date)))
+         d  = (pad (Date.day model.date))
+    in
+        case model.fetchingColors of
+            False -> label [] [Html.text "Date: "
+                              ,DatePicker.view model.datePicker
+                              |> App.map ToDatePicker]
+            True -> label [class "datepicker-placeholder"] [Html.text ("Date: "++ y++"-"++m++"-"++d )]
 
 
 mapcontrol : Model -> Html Msg
 mapcontrol model =
-    let
-        currday = let y = (toString (Date.year model.date))
-                      m= (pad (monthToInt (Date.month model.date)))
-                      d  = (pad (Date.day model.date))
-                      h = (pad model.hour)
-                  in
-                      y++"-"++m++"-"++d++" "++h++":00"
-        baddate = case  model.baddate of
+    let  y = (toString (Date.year model.date))
+         m = (pad (monthToInt (Date.month model.date)))
+         d  = (pad (Date.day model.date))
+         h = (pad model.hour)
+         currday =   y++"-"++m++"-"++d++" "++h++":00"
+         baddate = case  model.baddate of
                       Nothing -> ""
                       Just bd -> "No data for " ++ bd
-        badclass = case model.baddate of
+         badclass = case model.baddate of
                        Nothing -> "goodday"
                        _       -> "badday"
     in
         div [Attr.class "mapcontrol col"]
-            [h2 []
-                 [Html.text "Pick date and hour to display on map"]
-            ,h2 [] [ Html.text <| currday ]
-            ,label[][Html.text "Date: "
-                    ,DatePicker.view model.datePicker
-                    |> App.map ToDatePicker
-                    ]
-            ,label [] [Html.text "Hour: "
-                      , input [ Attr.type' "number"
-                              , Attr.value (pad model.hour)
-                              , Attr.min "-1"
-                              , Attr.max "24"
-                              , Attr.step "1"
-                              , onInput NewHour][]
-                      ]
-            ,button [ Attr.disabled model.fetchingColors, onClick MorePlease ] [ Html.text ("get date")]
-            ,div [Attr.class badclass][Html.text baddate]
+            [div [Attr.class "row"]
+             [h2 []
+                  [Html.text "Pick date and hour to display on map"]
+             ,h2 [] [ Html.text <| currday ]]
+            ,div [Attr.class "row"]
+                [datepickbuilder model
+                ,label [] [Html.text "Hour: "
+                       , input [ Attr.type' "number"
+                               , Attr.value (pad model.hour)
+                               , Attr.min "-1"
+                               , Attr.max "24"
+                               , Attr.step "1"
+                               , Attr.disabled model.fetchingColors
+                               , onInput NewHour][]
+                       ]
+            ,button [ class "btn" ,Attr.disabled model.fetchingColors, onClick MorePlease ] [ Html.text ("get date")]
+                  ]
+            ,div [Attr.class ("row "++badclass)][Html.text baddate]
             ,whatToPlot model
-            ,label [class "slider"] [Html.text ("Color Scale max: "++ (toString model.scaleDomain))
-                      ,input [ Attr.type' "range"
-                             , id "volrange"
-                             , Attr.min "1"
-                             , Attr.max "300000"
-                             , Attr.step "100"
-                             , Attr.value (toString model.scaleDomain)
-                             , Attr.name "volrange"
-                             --, Attr.list "volranges"
-                             , onInput ScaleDomain][]
-                          ]
-            ,label [class "slider"] [Html.text ("Color scale exponent: "++ (toString model.scaleExponent))
+            ,div [Attr.class "row"]
+                [label [class "slider"] [Html.text ("Color Scale max: "++ (toString model.scaleDomain))
+                                        ,input [ Attr.type' "range"
+                                               , id "volrange"
+                                               , Attr.min "1"
+                                               , Attr.max "300000"
+                                               , Attr.step "100"
+                                               , Attr.value (toString model.scaleDomain)
+                                               , Attr.name "volrange"
+                                               --, Attr.list "volranges"
+                                               , onInput ScaleDomain][]
+                                        ]
+                     ]
+            ,div [Attr.class "row"]
+                [label [class "slider"] [Html.text ("Color scale exponent: "++ (toString model.scaleExponent))
                       ,input [ Attr.type' "range"
                              , id "volrange"
                              , Attr.min "0.01"
@@ -543,7 +556,7 @@ mapcontrol model =
                              , Attr.name "exponentrange"
                              , onInput ScaleExponent][]
                           ]
-
+                ]
             ]
 
 
