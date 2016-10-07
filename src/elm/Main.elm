@@ -389,44 +389,48 @@ svgpath2 colordata entry =
                          , SvgAttr.d entry.path][]
 
 
+hpmsbuttons : Model ->  List (Html Msg)
+hpmsbuttons model =
+    [ button
+          [Attr.disabled (not model.plotvars.hpmsBased)
+          ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsHwys
+                       then "btn hpmshwys active"
+                       else "btn hpmshwys off")
+          , onClick HpmsHwys]
+          [ Html.text ("State Highways")]
+    , button
+          [Attr.disabled (not model.plotvars.hpmsBased)
+          ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCity
+                       then "btn hpmscity active"
+                       else "btn hpmscity off")
+          , onClick HpmsCity]
+          [ Html.text ("City Streets")]
+    , button
+          [Attr.disabled (not model.plotvars.hpmsBased)
+          ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCounty
+                       then "btn hpmscounty active"
+                       else "btn hpmscounty off")
+          , onClick HpmsCounty]
+          [ Html.text ("County Streets")]
+    ]
+
 whatToPlot : Model -> Html Msg
 whatToPlot model =
-    let
-        detectorActive = True -- placeholder for other things
-    in
-        div [Attr.class "plotbuttons"]
-        [div [Attr.class "btn-container"]
-             [div [Attr.class "toplevel hpms row"]
-                  [button
-                       [ Attr.class (if model.plotvars.hpmsBased
+        let
+            detectorActive = True -- placeholder for other things
+        in
+            div [Attr.class "plotbuttons"]
+                [div [Attr.class "btn-container"]
+                     [div [Attr.class "toplevel hpms row"]
+                          [button
+                               [ Attr.class (if model.plotvars.hpmsBased
                                then "btn hpmsbased active"
                                else "btn hpmsbased off")
                        , onClick HpmsBased]
                        [ Html.text ("hpms based data")]
                   ]
              ,div [Attr.class "hpmsbuttons row"]
-                 [ button
-                       [Attr.disabled (not model.plotvars.hpmsBased)
-                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsHwys
-                                    then "btn hpmshwys active"
-                                    else "btn hpmshwys off")
-                       , onClick HpmsHwys]
-                       [ Html.text ("State Highways")]
-                 , button
-                       [Attr.disabled (not model.plotvars.hpmsBased)
-                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCity
-                                    then "btn hpmscity active"
-                                    else "btn hpmscity off")
-                       , onClick HpmsCity]
-                       [ Html.text ("City Streets")]
-                 , button
-                       [Attr.disabled (not model.plotvars.hpmsBased)
-                       ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCounty
-                                    then "btn hpmscounty active"
-                                    else "btn hpmscounty off")
-                       , onClick HpmsCounty]
-                       [ Html.text ("County Streets")]
-                 ]
+                 (hpmsbuttons model)
              ,div [Attr.class "hpmsdata row"]
                  [ button
                        [Attr.disabled (not model.plotvars.hpmsBased)
@@ -514,9 +518,10 @@ mapcontrol model =
     in
         div [Attr.class "mapcontrol col"]
             [div [Attr.class "row"]
-             [h2 []
-                  [Html.text "Pick date and hour to display on map"]
-             ,h2 [] [ Html.text <| currday ]]
+                 [h2 []
+                      [Html.text "Pick date and hour to display on map"]]
+            ,div [Attr.class "row"]
+                  [h2 [] [ Html.text <| currday ]]
             ,div [Attr.class "row"]
                 [datepickbuilder model
                 ,label [] [Html.text "Hour: "
