@@ -121,16 +121,16 @@ init fl =
         , data = Nothing
         , detectorBased = { entry = ""
                           , value = "detectorbased"
-                          , class = "detector btn active"
+                          , class = "detector btn"
                           , text = "detector based data"
                           , on = True
                           , disabled = False
                           , relevant = True
-                          , matchFn = \_ -> True
+                          , matchFn = \k -> (k == "detector_based")
                           }
         , hpmsBased = { entry = ""
                       , value = "hpmsbased"
-                      , class = "hpms btn active"
+                      , class = "hpms btn"
                       , text = "HPMS based data"
                       , on = True, disabled = False
                       , relevant = True
@@ -139,7 +139,7 @@ init fl =
 
         , hpmsRoadTypes = Array.fromList [ { entry = ""
                             , value = "shs"
-                            , class = "hpms btn active"
+                            , class = "hpms btn"
                             , text = "State Highways"
                             , on = True, disabled = False
                             , relevant = True
@@ -148,7 +148,7 @@ init fl =
                             }
                           , { entry = ""
                             , value = "city"
-                            , class = "hpms btn active"
+                            , class = "hpms btn"
                             , text = "City Streets"
                             , on = True, disabled = False
                             , relevant = True
@@ -161,7 +161,7 @@ init fl =
                             }
                           , { entry = ""
                             , value = "co"
-                            , class = "hpms btn active"
+                            , class = "hpms btn"
                             , text = "County Streets"
                             , on = True, disabled = False
                             , relevant = True
@@ -171,7 +171,7 @@ init fl =
 
         ,hpmsPlotVars = Array.fromList [ { entry = "sum_vmt"
                           , value = "hpms_vmt"
-                          , class = "hpms btn active"
+                          , class = "hpms btn"
                           , text = "HPMS VMT"
                           , on = True, disabled = False
                           , relevant = True
@@ -179,7 +179,7 @@ init fl =
                           }
                         , { entry = "sum_combination_mt"
                           , value = "hpms_combovmt"
-                          , class = "hpms btn active"
+                          , class = "hpms btn"
                           , text = "Combination Truck VMT"
                           , on = False, disabled = True
                           , relevant = True
@@ -187,7 +187,7 @@ init fl =
                           }
                         , { entry = "sum_single_unit_mt"
                           , value = "hpms_singlevmt"
-                          , class = "hpms btn active"
+                          , class = "hpms btn"
                           , text = "Single Unit Truck VMT"
                           , on = False, disabled = True
                           , relevant = True
@@ -197,7 +197,7 @@ init fl =
 
         ,detectorPlotVars = Array.fromList [ { entry = "n_mt"
                               , value = "n_mt"
-                              , class = "detector btn active"
+                              , class = "detector btn"
                               , text = "detector-based VMT"
                               , on = True, disabled = False
                               , relevant = True
@@ -205,7 +205,7 @@ init fl =
                               }
                             , { entry = "hh_mt"
                               , value = "hh_mt"
-                              , class = "detector btn active"
+                              , class = "detector btn"
                               , text = "Heavy Heavy-Duty Truck VMT"
                               , on = False, disabled = True
                               , relevant = True
@@ -213,7 +213,7 @@ init fl =
                               }
                             , { entry = "nhh_mt"
                               , value = "nhh_mt"
-                              , class = "detector btn active"
+                              , class = "detector btn"
                               , text = "Not Heavy Heavy-Duty Truck VMT"
                               , on = False, disabled = True
                               , relevant = True
@@ -297,8 +297,7 @@ update msg model =
   case msg of
     NewHour rec ->
         let
-            newhour = Result.withDefault model.hour (String.toInt
-                                                         (Debug.log "newhour" rec))
+            newhour = Result.withDefault model.hour (String.toInt rec)
             diffhour = newhour - model.hour
             newdate = (Period.add Period.Hour diffhour model.date)
             ( datePicker, datePickerFx ) =
@@ -341,14 +340,15 @@ update msg model =
     HandleButton msg index rec ->
         case msg of
             DetectorBased ->
-                let pvars = model.detectorBased
-                    toggle = {pvars | on = not pvars.on}
+                let pvars =  model.detectorBased
+                    toggle =  {pvars | on = not pvars.on}
                 in
                     ({model | detectorBased = toggle}
                     , getColorJson {model | detectorBased = toggle})
             HpmsBased ->
                 let pvars = model.hpmsBased
                     toggle = {pvars | on = not pvars.on}
+
                 in
                     ({model | hpmsBased = toggle}
                     , getColorJson {model | hpmsBased = toggle})
@@ -358,7 +358,8 @@ update msg model =
                     case pvars of
                         Just pvars ->
                             let
-                                toggle = {pvars | on = not pvars.on}
+                                toggle = {pvars | on = not pvars.on
+                                         }
                                 newArr = Array.set index toggle model.hpmsRoadTypes
                             in
                                 ({model | hpmsRoadTypes = newArr}
@@ -371,7 +372,18 @@ update msg model =
                         Just pvars ->
                             let
                                 toggle = {pvars | on = not pvars.on}
-                                newArr = Array.set index toggle model.hpmsPlotVars
+                                newArr =
+                                    case index of
+                                        0 -> -- toggling VMT case
+                                        let
+                                            len = Array.length model.hpmsPlotVars
+                                            otherArr = Array.map (setDisabled (not pvars.on)) (Array.slice 1 len model.hpmsPlotVars)
+                                        in
+                                            Array.append
+                                                (Array.fromList [toggle])
+                                                otherArr
+                                        _ -> -- not the VMT case, so simpler
+                                          Array.set index toggle model.hpmsPlotVars
                             in
                                 ({model | hpmsPlotVars = newArr}
                                 , getColorJson {model | hpmsPlotVars = newArr})
@@ -383,7 +395,19 @@ update msg model =
                         Just pvars ->
                             let
                                 toggle = {pvars | on = not pvars.on}
-                                newArr = Array.set index toggle model.detectorPlotVars
+                                newArr =
+                                    case index of
+                                        0 -> -- toggling VMT case
+                                        let
+                                            len = Array.length model.detectorPlotVars
+                                            otherArr = Array.map (setDisabled  (not pvars.on)) (Array.slice 1 len model.detectorPlotVars)
+                                        in
+                                            Array.append
+                                                (Array.fromList [toggle])
+                                                otherArr
+                                        _ -> -- not the VMT case, so simpler
+                                           Array.set index toggle model.detectorPlotVars
+
                             in
                                 ({model | detectorPlotVars = newArr}
                                 , getColorJson {model | detectorPlotVars = newArr})
@@ -557,15 +581,22 @@ svgpath2 colordata entry =
                          , gridstyle
                          , SvgAttr.d entry.path][]
 
-makebutton : BtnMsg -> (Int, PlottingButton) ->  Maybe (Html Msg)
-makebutton msg (idx, btn) =
+makebutton : Maybe PlottingButton -> BtnMsg -> (Int, PlottingButton) ->  Maybe (Html Msg)
+makebutton ablebutton msg (idx, btn) =
      if btn.relevant
      then
         let
+            myclass = if btn.on
+                      then (btn.class ++ " active")
+                      else btn.class
+            mydisabled = case ablebutton of
+                             Just b ->
+                                 btn.disabled || (not b.on)
+                             _ -> btn.disabled
             mybutton =
                 Html.button
-                  [Attr.disabled btn.disabled
-                  ,Attr.class btn.class
+                  [Attr.disabled mydisabled
+                  ,Attr.class myclass
                   ,Attr.value btn.value
                   ,onClick (HandleButton msg idx btn.value) ] -- fix later
                   [ Html.text btn.text]
@@ -585,12 +616,12 @@ pickbuttons model =
         hpmsPlotVars     = Array.toIndexedList model.hpmsPlotVars
         detectorPlotVars = Array.toIndexedList model.detectorPlotVars
 
-        detectorButton =  makebutton DetectorBased (0, model.detectorBased)
-        detectorDataButtons =  List.filterMap (makebutton DetectorPlotVars) detectorPlotVars
+        detectorButton =  makebutton Nothing DetectorBased (0, model.detectorBased)
+        detectorDataButtons =  List.filterMap (makebutton (Just model.detectorBased) DetectorPlotVars) detectorPlotVars
 
-        hpmsButton =  makebutton HpmsBased (0, model.hpmsBased)
-        hpmsTypeButtons = List.filterMap (makebutton HpmsRoadTypes) hpmsRoadTypes
-        hpmsDataButtons = List.filterMap (makebutton HpmsPlotVars) hpmsPlotVars
+        hpmsButton =  makebutton Nothing HpmsBased (0, model.hpmsBased)
+        hpmsTypeButtons = List.filterMap (makebutton (Just model.hpmsBased) HpmsRoadTypes) hpmsRoadTypes
+        hpmsDataButtons = List.filterMap (makebutton (Just model.hpmsBased) HpmsPlotVars) hpmsPlotVars
 
     in
 
@@ -818,15 +849,20 @@ getter : (Dict String Float) -> String -> Float -> Float
 getter  myd a start = start + (Maybe.withDefault 0.0 (Dict.get a myd))
 
 -- set up the checkOn function
+setDisabled : Bool -> PlottingButton -> PlottingButton
+setDisabled setting button =
+    {button | disabled=setting, on=(not setting) }
+
+-- set up the checkOn function
 checkOn : PlottingButton -> PlottingButton -> Bool
 checkOn category button = category.on && button.on
 
 -- set up the matchOn function
 matchOn : String -> PlottingButton -> Bool
-matchOn key button = button.matchFn key
+matchOn key button =  button.matchFn key
 
-sumValues : Model -> String -> Dict String Float -> Float -> Float
-sumValues model dictkey mydict start =
+sumValues : Model -> (String -> Dict String Float -> Float -> Float)
+sumValues model =
     -- check here whether to bother with dictkey
     let
         hpmsBased =  model.hpmsBased
@@ -843,40 +879,49 @@ sumValues model dictkey mydict start =
 
         -- condense the tests.  If ANY pass, then keep the entry for summing
         -- need to check for degenerate cases
-        buttonTests = List.concat [detectorPlotVars, hpmsRoadTypes]
-        isWorthy = List.any (matchOn dictkey) buttonTests
+        buttonTests =  if detectorBased.on
+                       then detectorBased :: hpmsRoadTypes
+                       else hpmsRoadTypes
 
+        summer : String -> Dict String Float -> Float -> Float
+        summer dictkey mydict start =
+            let
+                isWorthy = List.any (matchOn dictkey) buttonTests
+                -- blblb = Debug.log (dictkey ++ " isWorthy: ") isWorthy
+            in
+                if (not isWorthy)
+                -- then ( Debug.log (dictkey ++ " skipping case ") (start + 0.0))
+                then  (start + 0.0)
+                else
+                    let
+                    -- filterDict = Dict.filter (dataTypeFilter pv) mydict
+                        dplotlist = if detectorBased.on
+                                     -- if a detector based thing, then use those plot vars
+                                    then List.map (\l -> l.entry ) detectorPlotVars
+                                    else []
+                                    -- now to hpms conditions
+                        hplotlist = if hpmsBased.on
+                                    -- if an hpms based thing, then use those plot vars
+                                    then List.map (\l -> l.entry ) hpmsPlotVars
+                                    else []
+                        plotlist = List.concat [dplotlist, hplotlist]
+                    in
+                        List.foldl (getter mydict) start plotlist
     in
-        if (not isWorthy)
-        --        then ( Debug.log (dictkey ++ " skipping case") 0.0)
-        then  0.0
-        else
-             let
-                -- filterDict = Dict.filter (dataTypeFilter pv) mydict
-                 dplotlist = if detectorBased.on
-                             -- if a detector based thing, then use those plot vars
-                             then List.map (\l -> l.entry ) detectorPlotVars
-                             else []
-                 -- now to hpms conditions
-                 hplotlist = if hpmsBased.on
-                             -- if a detector based thing, then use those plot vars
-                             then List.map (\l -> l.entry ) hpmsPlotVars
-                             else []
-                 plotlist = List.concat [dplotlist, hplotlist]
-
-             in
-                 List.foldl (getter mydict) start plotlist
-                 -- List.foldl (getter filterDict) start plotlist
+        summer
 
 
-
-gridReduce : Model -> String ->  (Dict String (Dict String Float) ) -> Float
-gridReduce model gridid griddata =
-    Dict.foldl (sumValues model) 0.0 griddata
+gridReduce : (String -> Dict String Float -> Float -> Float) -> String ->  (Dict String (Dict String Float) ) -> Float
+gridReduce redfn gridid griddata =
+    Dict.foldl redfn  0.0 griddata
 
 sumDataValues :  Model -> Dict String Float
 sumDataValues model =
-    Dict.map (gridReduce model) model.colorData
+    let
+        redfn =  sumValues model
+    in
+
+    Dict.map (gridReduce redfn)  model.colorData
 
 dropZeros : String -> Float -> Bool
 dropZeros k v =
