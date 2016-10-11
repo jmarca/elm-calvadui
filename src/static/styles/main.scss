@@ -46,6 +46,14 @@ div.container div.row {
     margin: 10px;
 }
 
+div.container div.daterow {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px;
+}
+
 div.btn-container div.row {
     display: flex;
     justify-content: flex-start;
@@ -132,6 +140,24 @@ rect {
 
 .btn.active {
     border-color : #000;
+    border-width : 1.1px;
+}
+
+button.btn.animate {
+    margin-left: 10px;
+}
+
+div.hours {
+    display: inline-block;
+    max-width: 5em;
+}
+
+
+.disabled-date {
+    position: relative;
+    display: inline-block;
+    max-width: 150px;
+    margin: 0px 10px 0px 0px;
 }
 
 

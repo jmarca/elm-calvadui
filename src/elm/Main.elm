@@ -79,6 +79,7 @@ type alias Model =
     ,baddate : Maybe String
     ,date : Date
     ,hour : Int
+    ,animate : Bool
     ,hpmsBased : PlottingButton
     ,detectorBased : PlottingButton
     ,hpmsPlotVars : Array PlottingButton
@@ -263,6 +264,7 @@ init fl =
         , baddate = Nothing
         , date = initdate
         , hour = (Date.hour initdate) -- should be same as fl.hour
+        , animate = False
         , colorData = Dict.empty
         , fetchingColors = False
         , showingDate = Nothing
@@ -319,6 +321,7 @@ type Msg
   | ScaleDomain String
   | ScaleExponent String
   | ScaleOpacity String
+  | Animate
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -332,7 +335,7 @@ update msg model =
                 DatePicker.init
                     { defaultSettings
                         | inputClassList = [ ( "form-control", True ) ]
-                        , inputName = Just "date"
+                        , inputName = Just "datepicker"
                         , pickedDate = Just newdate
                     }
 
@@ -353,11 +356,14 @@ update msg model =
                         Nothing ->
                             model.date
                         Just dd -> dd
+                -- adjust the hour correctly
+                diffhour = model.hour - ( Date.hour date )
+                newdate = (Period.add Period.Hour diffhour date)
                 -- adjust the HPMS buttons based on year
-                yr = Date.year date
+                yr = Date.year newdate
             in
              { model
-                  | date = date
+                  | date = newdate
                   , datePicker = datePicker
               }
              ! [ Cmd.map ToDatePicker datePickerFx]
@@ -365,6 +371,16 @@ update msg model =
 
     MorePlease ->
         ({model | fetchingColors = True} , getData model)
+
+    Animate ->
+        let
+            newanimate = (not model.animate)
+        in
+            ({model | animate = newanimate
+             }
+            , if newanimate
+              then Cmd.Extra.message MorePlease
+              else Cmd.none)
 
     HandleButton msg index rec ->
         case msg of
@@ -521,7 +537,10 @@ update msg model =
         ({model | records = Just newFeatures}, Cmd.none)
 
     ColorMap newData ->
-        ({model | data = (Result.toMaybe(Json.decodeValue colorDictionary newData))}, Cmd.none)
+        ({model | data = (Result.toMaybe(Json.decodeValue colorDictionary newData))}
+        ,if model.animate
+         then Cmd.Extra.message MorePlease
+         else Cmd.none)
 
     FetchSucceed2 rec ->
         (model, getTopoJson rec)
@@ -578,11 +597,15 @@ update msg model =
             m = (pad (monthToInt (Date.month model.date)))
             d  = (pad (Date.day model.date))
             h = (pad model.hour)
-            newDateFailed =  y++"-"++m++"-"++d++" "++h++":00"
+            newDateFailed =  if model.animate
+                             then y++"-"++m++"-"++d++" "++h++":00  (Animation Canceled)"
+                             else y++"-"++m++"-"++d++" "++h++":00"
+
         in
             -- let the UI know the date has no data
             ({model| baddate=Just newDateFailed
-             ,fetchingColors = False}, Cmd.none)
+             ,fetchingColors = False
+             ,animate = False}, Cmd.none)
 
     FetchFail e ->
         let
@@ -779,10 +802,13 @@ datepickbuilder model =
          d  = (pad (Date.day model.date))
     in
         case model.fetchingColors of
-            False -> label [] [Html.text "Date: "
-                              ,DatePicker.view model.datePicker
-                              |> App.map ToDatePicker]
-            True -> label [class "datepicker-placeholder"] [Html.text ("Date: "++ y++"-"++m++"-"++d )]
+            False -> DatePicker.view model.datePicker
+                         |> App.map ToDatePicker
+            True -> input [Attr.class "disabled-date form-control"
+                           , Attr.disabled True
+                           , Attr.name "datepicker"
+                           , Attr.value (y++"-"++m++"-"++d)][]
+
 
 
 mapcontrol : Model -> Html Msg
@@ -798,6 +824,9 @@ mapcontrol model =
          badclass = case model.baddate of
                        Nothing -> "goodday"
                        _       -> "badday"
+         animateclass = if model.animate
+                        then "btn animate active"
+                        else "btn animate"
     in
         div [Attr.class "mapcontrol col"]
             [div [Attr.class "row"]
@@ -805,18 +834,23 @@ mapcontrol model =
                       [Html.text "Pick date and hour to display on map"]]
             ,div [Attr.class "row"]
                   [h2 [] [ Html.text <| currday ]]
-            ,div [Attr.class "row"]
-                [datepickbuilder model
-                ,label [] [Html.text "Hour: "
-                       , input [ Attr.type' "number"
-                               , Attr.value (pad model.hour)
-                               , Attr.min "-1"
-                               , Attr.max "24"
-                               , Attr.step "1"
-                               , Attr.disabled model.fetchingColors
-                               , onInput NewHour][]
-                       ]
+            ,div [Attr.class "daterow"]
+                [ label [Attr.for "datepicker"]  [Html.text "Date: "]
+                , datepickbuilder model
+                , label [Attr.for "Hour"] [Html.text "Hour: "]
+                , div [Attr.class "hours"][
+                      input [ Attr.class "hours form-control"
+                            , Attr.type' "number"
+                            , Attr.value (pad model.hour)
+                            , Attr.min "-1"
+                            , Attr.max "24"
+                            , Attr.step "1"
+                            , Attr.name "Hour"
+                            , Attr.disabled model.fetchingColors
+                            , onInput NewHour][]
+                     ]
             ,button [ class "btn" ,Attr.disabled model.fetchingColors, onClick MorePlease ] [ Html.text ("get date")]
+            ,button [ class animateclass , onClick Animate ] [ Html.text ("Animate data")]
                   ]
             ,div [Attr.class ("row "++badclass)][Html.text baddate]
             ,pickbuttons model
