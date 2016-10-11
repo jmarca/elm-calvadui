@@ -40,6 +40,7 @@ div.container , div.btn-container{
 }
 div.container div.row {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
     margin: 10px;

@@ -102,6 +102,16 @@ type alias Flags =
     ,day : Int
     ,hour: Int}
 
+makeHpmsEntry : String -> String -> PlottingButton
+makeHpmsEntry val txt =
+     { entry = ""
+     , value = val
+     , class = "hpms btn"
+     , text = txt
+     , on = True, disabled = False
+     , relevant = False
+     , matchFn = \k -> (k == txt)
+     }
 
 init: Flags -> (Model, Cmd Msg)
 init fl =
@@ -137,7 +147,8 @@ init fl =
                       , matchFn = \_ -> True
                       }
 
-        , hpmsRoadTypes = Array.fromList [ { entry = ""
+        , hpmsRoadTypes = Array.fromList [
+                           { entry = ""
                             , value = "shs"
                             , class = "hpms btn"
                             , text = "State Highways"
@@ -167,6 +178,20 @@ init fl =
                             , relevant = True
                             , matchFn = Regex.contains (regex "^CO")
                             }
+                          -- older hpms functional types
+
+                          , makeHpmsEntry "rpai" "Rural Principal Arterial Interstate (PAI)"
+                          , makeHpmsEntry "ropa" "Rural Other Principal Arterial (OPA)"
+                          , makeHpmsEntry "rma"  "Rural Minor Arterial (MA)"
+                          , makeHpmsEntry "rmjc" "Rural Major Collector (MJC)"
+                          , makeHpmsEntry "rmnc" "Rural Minor Collector (MNC)"
+                          , makeHpmsEntry "rloc" "Rural Local (LOC)"
+                          , makeHpmsEntry "upai" "Urban Principal Arterial Interstate (PAI)"
+                          , makeHpmsEntry "uofe" "Urban Principal Arterial Other Fwys & Exp (OFE)"
+                          , makeHpmsEntry "uopa" "Urban Other Principal Arterial (OPA)"
+                          , makeHpmsEntry "uma"  "Urban Minor Arterial (MA)"
+                          , makeHpmsEntry "ucol" "Urban Collector (COL)"
+                          , makeHpmsEntry "uloc" "Urban Local (LOC)"
                           ]
 
         ,hpmsPlotVars = Array.fromList [ { entry = "sum_vmt"
@@ -324,8 +349,9 @@ update msg model =
                     case mDate of
                         Nothing ->
                             model.date
-
                         Just dd -> dd
+                -- adjust the HPMS buttons based on year
+                yr = Date.year date
             in
              { model
                   | date = date
@@ -492,23 +518,48 @@ update msg model =
 
     FetchDataSucceed rec ->
         let
-            y = (toString (Date.year model.date))
+            yr = Date.year model.date
+            y = (toString yr)
             m = (pad (monthToInt (Date.month model.date)))
             d  = (pad (Date.day model.date))
             h = (pad model.hour)
             newDateFetched =  y++"-"++m++"-"++d++" "++h++":00"
+        -- adjust the HPMS buttons based on year
+            len = Array.length model.hpmsRoadTypes
+            newtypes = if yr<2012
+                       then
+                           Array.map
+                               (setRelevant False)
+                               (Array.slice 0 3 model.hpmsRoadTypes)
+                       else
+                           Array.map
+                               (setRelevant True)
+                               (Array.slice 0 3 model.hpmsRoadTypes)
+            oldtypes = if yr<2012
+                       then
+                           Array.map
+                               (setRelevant True)
+                               (Array.slice 3 len model.hpmsRoadTypes)
+                       else
+                           Array.map
+                               (setRelevant False)
+                               (Array.slice 3 len model.hpmsRoadTypes)
+            hpmsRoadTypes = Array.append newtypes oldtypes
         in
             -- let the UI know the data is back
-            ({model |
-                  fetchingColors = False
-             ,showingDate = Just newDateFetched
-             ,baddate=Nothing
-             ,colorData = rec}
+            ({model | fetchingColors = False
+                    , showingDate = Just newDateFetched
+                    , baddate=Nothing
+                    , colorData = rec
+                    , hpmsRoadTypes = hpmsRoadTypes
+             }
             -- and now go get the right colors for the retrieved data
             ! [ getColorJson {model | fetchingColors = False
                              ,showingDate = Just newDateFetched
                              ,baddate=Nothing
-                             ,colorData = rec}
+                             ,colorData = rec
+                             , hpmsRoadTypes = hpmsRoadTypes
+                             }
               ,Cmd.Extra.message (NewHour (toString (model.hour + 1) ))])
 
     FetchDataFail e ->
@@ -848,10 +899,15 @@ getData model =
 getter : (Dict String Float) -> String -> Float -> Float
 getter  myd a start = start + (Maybe.withDefault 0.0 (Dict.get a myd))
 
--- set up the checkOn function
+-- set up the setDisabled function
 setDisabled : Bool -> PlottingButton -> PlottingButton
 setDisabled setting button =
     {button | disabled=setting, on=(not setting) }
+
+-- set up the setRelevant function
+setRelevant : Bool -> PlottingButton -> PlottingButton
+setRelevant setting button =
+    {button | relevant=setting }
 
 -- set up the checkOn function
 checkOn : PlottingButton -> PlottingButton -> Bool
