@@ -87,6 +87,7 @@ type alias Model =
     ,colorData : Dict String (Dict String (Dict String Float))
     ,scaleDomain : Int
     ,scaleExponent : Float
+    ,opacity : Float
     }
 
 type alias ColorMessages =
@@ -266,7 +267,8 @@ init fl =
         , fetchingColors = False
         , showingDate = Nothing
         , scaleDomain = 190000
-        , scaleExponent = 0.3}
+        , scaleExponent = 0.3
+        , opacity = 0.5}
          ! [ Cmd.batch([getIt2 fl.mapfile
                        , Cmd.map ToDatePicker datePickerFx
                        ])]
@@ -316,6 +318,7 @@ type Msg
   -- | DetectorNHH
   | ScaleDomain String
   | ScaleExponent String
+  | ScaleOpacity String
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -505,6 +508,13 @@ update msg model =
         in
             ({model | scaleExponent = newExponent}
             , getColorJson {model | scaleExponent = newExponent})
+
+    ScaleOpacity rec ->
+        let
+            newOpacity = Result.withDefault model.opacity (String.toFloat rec)
+        in
+            ({model | opacity = newOpacity}
+            , Cmd.none )
 
 
     IdPath newFeatures ->
@@ -822,9 +832,7 @@ mapcontrol model =
                                                --, Attr.list "volranges"
                                                , onInput ScaleDomain][]
                                         ]
-                     ]
-            ,div [Attr.class "row"]
-                [label [class "slider"] [Html.text ("Color scale exponent: "++ (toString model.scaleExponent))
+                ,label [class "slider"] [Html.text ("Color scale exponent: "++ (toString model.scaleExponent))
                       ,input [ Attr.type' "range"
                              , id "volrange"
                              , Attr.min "0.01"
@@ -834,6 +842,21 @@ mapcontrol model =
                              , Attr.name "exponentrange"
                              , onInput ScaleExponent][]
                           ]
+                ]
+            ,div [Attr.class "row"]
+                [label [class "slider"]
+                     [Html.text ("Data opacity: "++ (toString model.opacity))
+                     ,input [ Attr.type' "range"
+                            , id "opacity"
+                            , Attr.min "0"
+                            , Attr.max "1"
+                            , Attr.step ".01"
+                            , Attr.value (toString model.opacity)
+                            , Attr.name "opacity"
+                            --, Attr.list "volranges"
+                            , onInput ScaleOpacity][]
+                     ]
+
                 ]
             ]
 
@@ -849,7 +872,12 @@ view model =
                            div [Attr.class "mapapp col"][
                                 Svg.svg [  width "500", height "536"][
                                      Svg.g [ class "tile", overflow "hidden", width "500", height "500"][]
-                                    ,Svg.g [ class "grid", overflow "hidden", width "500", height "500"][]
+                                    ,Svg.g [ class "grid"
+                                           , overflow "hidden"
+                                           , width "500"
+                                           , height "500"
+                                           , Attr.style [("fill-opacity", (toString model.opacity))]]
+                                         []
                                     ]],
                            (mapcontrol model)
                                ]])
@@ -859,7 +887,11 @@ view model =
                             div [Attr.class "mapapp col"][
                                  Svg.svg [  width "500", height "536"][
                                       Svg.g [ class "tile", width "500", height "500"][]
-                                     ,Svg.g [ class "grid", width "500", height "500"] (svgpaths2 records model.data)
+                                     ,Svg.g [ class "grid"
+                                            , width "500"
+                                            , height "500"
+                                           , Attr.style [("fill-opacity", (toString model.opacity))]
+                                            ] (svgpaths2 records model.data)
                                      ,Svg.rect[ x "0"
                                               , y "500"
                                               , width "500"
