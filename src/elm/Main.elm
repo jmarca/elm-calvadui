@@ -51,21 +51,6 @@ type alias PlottingButton =
     , matchFn : String -> Bool -- does the incoming key match this
     }
 
--- -- PlotVars.  Problem with this is able to make mistakes, like
--- -- plotting at the same time trucks and VMT
--- type alias PlotVars =
---     { detectorbased : Bool
---     , hpmsBased : Bool
---     , hpmsHwys : Bool
---     , hpmsCounty : Bool
---     , hpmsCity : Bool
---     , hpmsVMT : Bool
---     , hpmsCombo : Bool
---     , hpmsSingle : Bool
---     , detectorVMT : Bool
---     , detectorHH : Bool
---     , detectorNHH : Bool
---     }
 
 
 type alias Model =
@@ -248,18 +233,6 @@ init fl =
                               }
                             ]
 
-        -- { detectorbased = True  --  True
-        -- , hpmsBased     = True  --  True
-        -- , hpmsHwys      = True  --  True
-        -- , hpmsCounty    = True  --  True
-        -- , hpmsCity      = True  --  True
-        -- , hpmsVMT       = True  --  True
-        -- , hpmsCombo     = False --  False
-        -- , hpmsSingle    = False --  False
-        -- , detectorVMT   = True  --  True
-        -- , detectorHH    = False --  False
-        -- , detectorNHH   = False --  False
-        -- }
         , datePicker = datePicker
         , baddate = Nothing
         , date = initdate
@@ -307,17 +280,6 @@ type Msg
   | ToDatePicker DatePicker.Msg
   | NewHour String
   | HandleButton BtnMsg Int String
-  -- | DetectorBased
-  -- | HpmsBased
-  -- | HpmsHwys
-  -- | HpmsCounty
-  -- | HpmsCity
-  -- | HpmsVMT
-  -- | HpmsCombo
-  -- | HpmsSingle
-  -- | DetectorVMT
-  -- | DetectorHH
-  -- | DetectorNHH
   | ScaleDomain String
   | ScaleExponent String
   | ScaleOpacity String
@@ -458,57 +420,6 @@ update msg model =
                                 , getColorJson {model | detectorPlotVars = newArr})
                         _ -> (model, Cmd.none)
 
-    -- HpmsHwys      ->
-    --     let pvars = model.plotvars
-    --         dvars = {pvars | hpmsHwys = (not pvars.hpmsHwys)}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
-    -- HpmsCounty    ->
-    --     let pvars = model.plotvars
-    --         dvars = {pvars | hpmsCounty = (not pvars.hpmsCounty)}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
-    -- HpmsCity      ->
-    --     let pvars = model.plotvars
-    --         dvars = {pvars | hpmsCity = (not pvars.hpmsCity)}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
-    -- HpmsVMT       ->
-    --     let pvars = model.plotvars
-    --         hpmsvmtNewState = (not pvars.hpmsVMT)
-    --         dvars = if hpmsvmtNewState
-    --                 then {pvars | hpmsVMT=True, hpmsCombo=False, hpmsSingle=False}
-    --                 else {pvars | hpmsVMT=False, hpmsCombo=True, hpmsSingle=True}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
-    -- HpmsCombo     ->
-    --     let pvars = model.plotvars
-    --         dvars = {pvars | hpmsCombo = (not pvars.hpmsCombo)}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
-    -- HpmsSingle    ->
-    --     let pvars = model.plotvars
-    --         dvars = {pvars | hpmsSingle = (not pvars.hpmsSingle)}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
-    -- DetectorVMT   ->
-    --     let pvars = model.plotvars
-    --         dvmtNewState = (not pvars.detectorVMT)
-    --         dvars = if dvmtNewState
-    --                 then {pvars | detectorVMT=True, detectorHH=False, detectorNHH=False}
-    --                 else {pvars | detectorVMT=False, detectorHH=True, detectorNHH=True}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
-    -- DetectorHH    ->
-    --     let pvars = model.plotvars
-    --         dvars = {pvars | detectorHH = (not pvars.detectorHH)}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
-    -- DetectorNHH   ->
-    --     let pvars = model.plotvars
-    --         dvars = {pvars | detectorNHH = (not pvars.detectorNHH)}
-    --     in
-    --     ({model | plotvars = dvars} , getColorJson model.colorData dvars model.scaleDomain model.scaleExponent)
 
     ScaleDomain rec ->
         let
@@ -552,7 +463,7 @@ update msg model =
             m = (pad (monthToInt (Date.month model.date)))
             d  = (pad (Date.day model.date))
             h = (pad model.hour)
-            newDateFetched =  y++"-"++m++"-"++d++" "++h++":00"
+            newDateFetched =  (toString (Date.dayOfWeek model.date)) ++", " ++ y++"-"++m++"-"++d++" "++h++":00"
         -- adjust the HPMS buttons based on year
             len = Array.length model.hpmsRoadTypes
             newtypes = if yr<2012
@@ -720,80 +631,6 @@ pickbuttons model =
                  ,div [Attr.class "detectordata row"] detectorDataButtons
                  ]]
 
--- whatToPlot : Model -> Html Msg
--- whatToPlot model =
---         let
---             detectorActive = True -- placeholder for other things
---         in
---             div [Attr.class "plotbuttons"]
---                 [div [Attr.class "btn-container"]
---                      [div [Attr.class "toplevel hpms row"]
---                           [button
---                                [ Attr.class (if model.plotvars.hpmsBased
---                                then "btn hpmsbased active"
---                                else "btn hpmsbased off")
---                        , onClick HpmsBased]
---                        [ Html.text ("hpms based data")]
---                   ]
---              ,div [Attr.class "hpmsbuttons row"]
---                  (hpmsbuttons model)
---              ,div [Attr.class "hpmsdata row"]
---                  [ button
---                        [Attr.disabled (not model.plotvars.hpmsBased)
---                        ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsVMT
---                                     then "btn hpmsVMT active"
---                                     else "btn hpmsVMT off")
---                        , onClick HpmsVMT]
---                        [ Html.text ("HPMS-based VMT")]
---                  , button
---                        [Attr.disabled  (model.plotvars.hpmsVMT || (not model.plotvars.hpmsBased))
---                        ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsCombo
---                                     then "btn hpmscombo active"
---                                     else "btn hpmscombo off")
---                        , onClick HpmsCombo]
---                        [ Html.text ("Combination Truck VMT")]
---                  , button
---                        [Attr.disabled  (model.plotvars.hpmsVMT || (not model.plotvars.hpmsBased))
---                        ,Attr.class (if model.plotvars.hpmsBased && model.plotvars.hpmsSingle
---                                     then "btn hpmssingle active"
---                                     else "btn hpmssingle off")
---                        , onClick HpmsSingle]
---                        [ Html.text ("Single Unit Truck VMT")]
---                  ]
---                  ]
---         ,div [Attr.class "btn-container"]
---             [div [Attr.class "toplevel detector row"]
---                  [button
---                       [ Attr.class (if model.plotvars.detectorbased
---                                     then "btn detectorbased active"
---                                     else "btn detectorbased off")
---                       , onClick DetectorBased]
---                       [ Html.text ("detector based data")]
---                  ]
---             ,div [Attr.class "detectordata row"]
---                 [ button
---                       [Attr.disabled (not model.plotvars.detectorbased)
---                       ,Attr.class (if model.plotvars.detectorbased && model.plotvars.detectorVMT
---                                    then "btn detectorVMT active"
---                                    else "btn detectorVMT off")
---                       , onClick DetectorVMT]
---                       [ Html.text ("detector-based VMT")]
---                 , button
---                       [Attr.disabled (model.plotvars.detectorVMT || (not  model.plotvars.detectorbased))
---                       ,Attr.class (if model.plotvars.detectorHH
---                                    then "btn detectorhh active"
---                                    else "btn detectorhh off")
---                       , onClick DetectorHH]
---                       [ Html.text ("Heavy Heavy-Duty Truck VMT")]
---                 , button
---                       [Attr.disabled (model.plotvars.detectorVMT || (not model.plotvars.detectorbased))
---                       ,Attr.class (if model.plotvars.detectorNHH
---                                    then "btn detectorNHH active"
---                                    else "btn detectorNHH off")
---                       , onClick DetectorNHH]
---                       [ Html.text ("Not Heavy Heavy-Duty Truck VMT")]
---                 ]
---             ]]
 
 datepickbuilder : Model -> Html Msg
 datepickbuilder model =
@@ -876,9 +713,10 @@ mapcontrol model =
                              , Attr.name "exponentrange"
                              , onInput ScaleExponent][]
                           ]
-                ]
-            ,div [Attr.class "row"]
-                [label [class "slider"]
+            -- ]
+            -- ,div [Attr.class "row"]
+            --     [
+                , label [class "slider"]
                      [Html.text ("Data opacity: "++ (toString model.opacity))
                      ,input [ Attr.type' "range"
                             , id "opacity"

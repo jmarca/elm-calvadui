@@ -79,7 +79,22 @@ if ( TARGET_ENV === 'development' ) {
           ]
         }
       ]
-    }
+    },
+    plugins: [
+      new CopyWebpackPlugin([
+        {
+          from: 'src/static/data/',
+          to:   'data/'
+        },
+        {
+          from: 'src/static/hpms/',
+          to:   'hpms/'
+        },
+        {
+          from: 'src/favicon.ico'
+        },
+      ])
+    ]
 
   });
 }
