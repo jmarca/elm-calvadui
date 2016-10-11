@@ -104,12 +104,13 @@ div.goodday{
 
 g.grid {
     fill: shade($color-teal-base, 20%);
-    fill-opacity: 0.5;
     stroke-width: 0;
     stroke-opacity: 0;
 }
+
 path.grid {
 }
+
 
 .grid:hover {
 }
