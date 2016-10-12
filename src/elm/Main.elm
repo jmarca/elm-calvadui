@@ -697,8 +697,8 @@ mapcontrol model =
                      [Html.text ("Color Scale max: "++ (toString model.scaleDomain))]
                 ,input [ Attr.type' "range"
                        , id "volrange"
-                       , Attr.min "1"
-                       , Attr.max "300000"
+                       , Attr.min "100"
+                       , Attr.max "200000"
                        , Attr.step "100"
                        , Attr.value (toString model.scaleDomain)
                        , Attr.name "volrange"
