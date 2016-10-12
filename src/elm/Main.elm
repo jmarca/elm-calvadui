@@ -65,6 +65,7 @@ type alias Model =
     ,date : Date
     ,hour : Int
     ,animate : Bool
+    ,doAnimate : Bool
     ,hpmsBased : PlottingButton
     ,detectorBased : PlottingButton
     ,hpmsPlotVars : Array PlottingButton
@@ -238,6 +239,7 @@ init fl =
         , date = initdate
         , hour = (Date.hour initdate) -- should be same as fl.hour
         , animate = False
+        , doAnimate = False
         , colorData = Dict.empty
         , fetchingColors = False
         , showingDate = Nothing
@@ -332,13 +334,13 @@ update msg model =
 
 
     MorePlease ->
-        ({model | fetchingColors = True} , getData model)
+        ({model | fetchingColors = True, doAnimate=False} , getData model)
 
     Animate ->
         let
             newanimate = (not model.animate)
         in
-            ({model | animate = newanimate
+            ({model | animate = newanimate, doAnimate = newanimate
              }
             , if newanimate
               then Cmd.Extra.message MorePlease
@@ -449,7 +451,7 @@ update msg model =
 
     ColorMap newData ->
         ({model | data = (Result.toMaybe(Json.decodeValue colorDictionary newData))}
-        ,if model.animate
+        ,if (model.animate && model.doAnimate)
          then Cmd.Extra.message MorePlease
          else Cmd.none)
 
@@ -488,6 +490,7 @@ update msg model =
         in
             -- let the UI know the data is back
             ({model | fetchingColors = False
+                    , doAnimate = True
                     , showingDate = Just newDateFetched
                     , baddate=Nothing
                     , colorData = rec
@@ -516,7 +519,7 @@ update msg model =
             -- let the UI know the date has no data
             ({model| baddate=Just newDateFailed
              ,fetchingColors = False
-             ,animate = False}, Cmd.none)
+             ,animate = False, doAnimate = False}, Cmd.none)
 
     FetchFail e ->
         let
@@ -692,45 +695,46 @@ mapcontrol model =
             ,div [Attr.class ("row "++badclass)][Html.text baddate]
             ,pickbuttons model
             ,div [Attr.class "row"]
-                [label [class "slider"] [Html.text ("Color Scale max: "++ (toString model.scaleDomain))
-                                        ,input [ Attr.type' "range"
-                                               , id "volrange"
-                                               , Attr.min "1"
-                                               , Attr.max "300000"
-                                               , Attr.step "100"
-                                               , Attr.value (toString model.scaleDomain)
-                                               , Attr.name "volrange"
-                                               --, Attr.list "volranges"
-                                               , onInput ScaleDomain][]
-                                        ]
-                ,label [class "slider"] [Html.text ("Color scale exponent: "++ (toString model.scaleExponent))
-                      ,input [ Attr.type' "range"
-                             , id "volrange"
-                             , Attr.min "0.01"
-                             , Attr.max "1"
-                             , Attr.step "0.01"
-                             , Attr.value (toString model.scaleExponent)
-                             , Attr.name "exponentrange"
-                             , onInput ScaleExponent][]
-                          ]
-            -- ]
-            -- ,div [Attr.class "row"]
-            --     [
-                , label [class "slider"]
-                     [Html.text ("Data opacity: "++ (toString model.opacity))
-                     ,input [ Attr.type' "range"
-                            , id "opacity"
-                            , Attr.min "0"
-                            , Attr.max "1"
-                            , Attr.step ".01"
-                            , Attr.value (toString model.opacity)
-                            , Attr.name "opacity"
-                            --, Attr.list "volranges"
-                            , onInput ScaleOpacity][]
+                [label [Attr.for "volrange"
+                       ,Attr.class "slider"]
+                     [Html.text ("Color Scale max: "++ (toString model.scaleDomain))]
+                ,input [ Attr.type' "range"
+                       , id "volrange"
+                       , Attr.min "100"
+                       , Attr.max "200000"
+                       , Attr.step "100"
+                       , Attr.value (toString model.scaleDomain)
+                       , Attr.name "volrange"
+                       --, Attr.list "volranges"
+                       , onInput ScaleDomain][]
+
+                ,label [Attr.for "exponentrange"
+                       ,Attr.class "slider"]
+                     [Html.text ("Color scale exponent: "++ (toString model.scaleExponent))]
+                ,input [ Attr.type' "range"
+                       , id "exponentrange"
+                       , Attr.min "0.01"
+                       , Attr.max "1"
+                       , Attr.step "0.01"
+                       , Attr.value (toString model.scaleExponent)
+                       , Attr.name "exponentrange"
+                       , onInput ScaleExponent][]
+
+                , label [Attr.for "opacity"
+                        ,Attr.class "slider"]
+                     [Html.text ("Data opacity: "++ (toString model.opacity))]
+                ,input [ Attr.type' "range"
+                       , id "opacity"
+                       , Attr.min "0"
+                       , Attr.max "1"
+                       , Attr.step ".01"
+                       , Attr.value (toString model.opacity)
+                       , Attr.name "opacity"
+                       , onInput ScaleOpacity][]
                      ]
 
                 ]
-            ]
+
 
 
 
@@ -742,7 +746,7 @@ view model =
                 (div [Attr.class "container"]
                      [div [Attr.class "row"][
                            div [Attr.class "mapapp col"][
-                                Svg.svg [  width "500", height "536"][
+                                Svg.svg [  width "500", height "500"][
                                      Svg.g [ class "tile", overflow "hidden", width "500", height "500"][]
                                     ,Svg.g [ class "grid"
                                            , overflow "hidden"
@@ -757,30 +761,33 @@ view model =
                 ( div [Attr.class "container"]
                       [div [Attr.class "row"][
                             div [Attr.class "mapapp col"][
-                                 Svg.svg [  width "500", height "536"][
-                                      Svg.g [ class "tile", width "500", height "500"][]
+                                 Svg.svg [  width "500", height "500"]
+                                     [Svg.g [ class "tile", width "500", height "500"][]
                                      ,Svg.g [ class "grid"
                                             , width "500"
                                             , height "500"
-                                           , Attr.style [("fill-opacity", (toString model.opacity))]
+                                            , Attr.style [("fill-opacity", (toString model.opacity))]
                                             ] (svgpaths2 records model.data)
-                                     ,Svg.rect[ x "0"
-                                              , y "500"
-                                              , width "500"
-                                              , height "36"][]
-
-                                     ,Svg.text'
-                                          [x "250"
-                                          , y "524"
-                                          , fontSize "24"
-                                          , alignmentBaseline "middle"
-                                          , textAnchor "middle"
-                                          , class "maplabel"]
+                                     ]
+                                     ,Svg.svg [  width "500", height "300"]
+                                     [Svg.text'
+                                         [x "250"
+                                         , y "24"
+                                         , fontSize "24"
+                                         , alignmentBaseline "middle"
+                                         , textAnchor "middle"
+                                         , class "maplabel"]
                                           [Svg.text (Maybe.withDefault "No date selected" model.showingDate)]
+
+                                     ,Svg.g [ class "hist"
+                                            , width "500"
+                                            , height "200"
+                                            , SvgAttr.transform "translate(0,60)"][]
                                      ]],
                                 (mapcontrol model)
-                           ]]
-                )
+                           ]
+                      ]
+                      )
 
 
 
