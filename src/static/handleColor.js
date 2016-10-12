@@ -9,7 +9,8 @@ function make_histogram(data,cls,cnt){
     // play with it here, then move to elm if necessary
     var width = 480
     var height = 60
-
+    var vmargin = 30
+    var hmargin = 10
 
     var x = d3.scaleLinear() // scalePow().exponent(exponent)//
             .domain(d3.extent(data))
@@ -17,7 +18,7 @@ function make_histogram(data,cls,cnt){
 
     var bins = d3.histogram()
             .domain(x.domain())
-            .thresholds(x.ticks(20))
+            .thresholds(x.ticks(15))
     (data)
 
     var y = d3.scaleLinear()
@@ -29,7 +30,7 @@ function make_histogram(data,cls,cnt){
     var g = d3.select("svg g.hist")
             .append("g")
             .attr("class",cls)
-            .attr("transform", "translate(0,"+cnt*(height+40)+")")
+            .attr("transform", "translate(0,"+cnt*(height+2*vmargin)+")")
 
     var bars = g.selectAll(".bar")
         .data(bins)
@@ -61,6 +62,20 @@ function make_histogram(data,cls,cnt){
         .attr("class", "axis axis--x")
         .attr("transform", "translate(0,"+(height+20)+")")
         .call(d3.axisBottom(x));
+
+    g.selectAll("text.caption").data([cnt])
+        .enter()
+        .append("text")
+        .attr("text-anchor","middle")
+        .attr("class","caption")
+        .attr("transform", "translate("+(width/2 + hmargin)+",0)")
+        .text(function(d){
+            var msg =  "Histogram of grid volumes under 1K VMT"
+            if(d===1){
+                msg =  "Histogram of grid volumes 1K VMT or above"
+            }
+            return msg
+        })
 }
 
 /**
