@@ -30,8 +30,9 @@ app.ports.getColorJson2.subscribe(function(args){
     // console.log('data is ', data)
 
     handleColor(args.data,args.maxdomain, args.exponent,
-                function(e,colormap){
-                    app.ports.colors.send(colormap)
+                function(e,colormap,maxdomain){
+                    app.ports.colors.send({"data":colormap,
+                                           "max":maxdomain})
                     return null
                 })
     return null

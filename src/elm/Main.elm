@@ -51,7 +51,9 @@ type alias PlottingButton =
     , matchFn : String -> Bool -- does the incoming key match this
     }
 
-
+type alias ColorResponse =
+    {data : Dict String String
+    ,newmax : Int}
 
 type alias Model =
     {file : String
@@ -455,8 +457,12 @@ update msg model =
     IdPath newFeatures ->
         ({model | records = Just newFeatures}, Cmd.none)
 
-    ColorMap newData ->
-        ({model | data = (Result.toMaybe(Json.decodeValue colorDictionary newData))}
+    ColorMap incoming ->
+        let
+            cr = Maybe.withDefault {data = Dict.empty, newmax = model.scaleDomain}  (Result.toMaybe(Json.decodeValue colorResponse incoming))
+        in
+        ({model | scaleDomain = cr.newmax
+                , data = Just cr.data}
         ,if (model.animate && model.doAnimate)
          then Cmd.Extra.message MorePlease
          else Cmd.none)
@@ -940,7 +946,8 @@ gridDataDictionary = dict (dict ( dict float))
 colorDictionary : Json.Decoder (Dict String String)
 colorDictionary = dict Json.string
 
-
+colorResponse : Json.Decoder ColorResponse
+colorResponse = object2 ColorResponse ("data" := colorDictionary) ("max" := Json.int)
 
 
 -- this mkDate/unsafeDate  hack idiom copied from one of the date libraries I looked at

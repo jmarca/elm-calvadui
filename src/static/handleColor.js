@@ -93,7 +93,7 @@ function handleColor(data, maxdomain, exponent, callback){
         // that means set automatically
         maxdomain = d3.max(data,function(d){return d[1]})
     }
-    //console.log('here in handle color with maxdomain = ',maxdomain, ' exponent = ', exponent )
+    // console.log('here in handle color with maxdomain = ',maxdomain, ' exponent = ', exponent )
 
     var c = d3.scalePow().exponent(exponent)
             .domain([0, maxdomain]) // on one particular
@@ -121,6 +121,6 @@ function handleColor(data, maxdomain, exponent, callback){
 
     make_histogram(histdata_under1k,"low",0)
     make_histogram(histdata_over1k,"high",1)
-    return callback(null,colormap)
+    return callback(null,colormap,maxdomain)
 }
 module.exports = handleColor
