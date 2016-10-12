@@ -24,6 +24,7 @@ $icon-font-path: '~bootstrap-sass/assets/fonts/bootstrap/';
 
 $color-teal-base: #f5f0e1;
 $black: #111;
+$color-gray:  #999;
 
 body {
     background-color: $color-teal-base;
@@ -74,7 +75,11 @@ text.maplabel {
 }
 
 label.slider {
-    margin: 5px 2px 2px 2px;
+    margin: 5px 5px 2px 2px;
+}
+
+label.slider.slider-disabled {
+    color: $color-gray;
 }
 
 div.badday {

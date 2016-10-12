@@ -88,8 +88,13 @@ function make_histogram(data,cls,cnt){
  * @returns {}
  */
 function handleColor(data, maxdomain, exponent, callback){
-    console.log('here in handle color with maxdomain = ',maxdomain, ' exponent = ', exponent )
     // passed array of arrays.  Array[0] is cellid, array[1] is value
+    if(maxdomain === 0){
+        // that means set automatically
+        maxdomain = d3.max(data,function(d){return d[1]})
+    }
+    //console.log('here in handle color with maxdomain = ',maxdomain, ' exponent = ', exponent )
+
     var c = d3.scalePow().exponent(exponent)
             .domain([0, maxdomain]) // on one particular
     // hour,156354,

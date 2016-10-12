@@ -73,6 +73,7 @@ type alias Model =
     ,detectorPlotVars : Array PlottingButton
     ,colorData : Dict String (Dict String (Dict String Float))
     ,scaleDomain : Int
+    ,autoMax : Bool
     ,scaleExponent : Float
     ,opacity : Float
     }
@@ -244,6 +245,7 @@ init fl =
         , fetchingColors = False
         , showingDate = Nothing
         , scaleDomain = 190000
+        , autoMax = False
         , scaleExponent = 0.3
         , opacity = 0.5}
          ! [ Cmd.batch([getIt2 fl.mapfile
@@ -283,6 +285,7 @@ type Msg
   | NewHour String
   | HandleButton BtnMsg Int String
   | ScaleDomain String
+  | AutoMax
   | ScaleExponent String
   | ScaleOpacity String
   | Animate
@@ -422,6 +425,9 @@ update msg model =
                                 , getColorJson {model | detectorPlotVars = newArr})
                         _ -> (model, Cmd.none)
 
+    AutoMax ->
+        ({model | autoMax = (not model.autoMax)}
+        , getColorJson {model |  autoMax = (not model.autoMax)})
 
     ScaleDomain rec ->
         let
@@ -667,6 +673,12 @@ mapcontrol model =
          animateclass = if model.animate
                         then "btn animate active"
                         else "btn animate"
+         automaxclass = if model.autoMax
+                        then "btn max active"
+                        else "btn max"
+         slidermaxclass = if model.autoMax
+                          then "slider slider-disabled"
+                          else "slider"
     in
         div [Attr.class "mapcontrol col"]
             [div [Attr.class "row"]
@@ -696,8 +708,9 @@ mapcontrol model =
             ,pickbuttons model
             ,div [Attr.class "row"]
                 [label [Attr.for "volrange"
-                       ,Attr.class "slider"]
+                       ,Attr.class slidermaxclass]
                      [Html.text ("Color Scale max: "++ (toString model.scaleDomain))]
+                ,button [ class automaxclass , onClick AutoMax ] [ Html.text ("set max automatically")]
                 ,input [ Attr.type' "range"
                        , id "volrange"
                        , Attr.min "100"
@@ -705,7 +718,7 @@ mapcontrol model =
                        , Attr.step "100"
                        , Attr.value (toString model.scaleDomain)
                        , Attr.name "volrange"
-                       --, Attr.list "volranges"
+                       , Attr.disabled model.autoMax
                        , onInput ScaleDomain][]
 
                 ,label [Attr.for "exponentrange"
@@ -900,7 +913,9 @@ getColorJson model =
     let
         datablob = ( Dict.toList (Dict.filter dropZeros (sumDataValues model)))
     in
-        getColorJson2 { maxdomain = model.scaleDomain
+        getColorJson2 { maxdomain = if model.autoMax
+                                    then 0
+                                    else model.scaleDomain
                       , exponent = model.scaleExponent
                       , data = datablob}
 
