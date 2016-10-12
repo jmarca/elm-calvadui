@@ -41,7 +41,7 @@ div.container , div.btn-container{
 div.container div.row {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: flex-start;
     margin: 10px;
 }
@@ -74,8 +74,7 @@ text.maplabel {
 }
 
 label.slider {
-    margin: 5px;
-    display: block;
+    margin: 5px 2px 2px 2px;
 }
 
 div.badday {
@@ -137,6 +136,13 @@ rect {
     fill-opacity: 0.9;
 }
 
+.bar rect {
+    fill:steelblue;
+}
+.var text {
+    fill: #eee;
+    font: 10px sans-serif;
+}
 
 .btn.active {
     border-color : #000;
