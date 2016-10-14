@@ -689,7 +689,23 @@ mapcontrol model =
         div [Attr.class "mapcontrol col"]
             [div [Attr.class "row"]
                  [h2 []
-                      [Html.text "Pick date and hour to display on map"]]
+                      [Html.text "Display hourly estimates of California Vehicle Activity"]
+                 ,p [][Html.text
+                           """
+                            This page allows you to view the
+                            estimated vehicle travel activity for any
+                            hour in the CalVAD database for the entire
+                            state of California.  Choose a date using
+                            the date picker (you can just type in the
+                            year month and day if you want) and select
+                            the hour and then press the \"get date\"
+                            button.  The \"animate\" button automates
+                            the incrementing of hours.  You can pan and
+                            zoom the map, and all of the buttons work
+                            to select different subsets of the
+                            downloaded data.
+                            """
+                      ]]
             ,div [Attr.class "row"]
                   [h2 [] [ Html.text <| currday ]]
             ,div [Attr.class "daterow"]
