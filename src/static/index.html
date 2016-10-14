@@ -3,14 +3,71 @@
   <head>
     <meta charSet="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CalVAD map interface</title>
-    <meta name="description" content="CalVAD map UI (Elm)"/>
+    <title>CalVAD</title>
+    <meta name="description" content="CalVAD Landing Page"/>
     <meta name="author" content="James E. Marca"/>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico"/>
+    <!-- <link href="https://netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" /> -->
+    <style>
+        .jumbotron {
+            border-radius: 20px;
+            box-shadow: 0px 2px 5px 1px rgba(1, 0, 0, 0.3);
+        }
+    </style>
   </head>
-  <body>
-      <div id="content">
-          <div id="app"></div>
-      </div>
-  </body>
+
+    <title>CalVAD:  The California Vehicle Activity Database website</title>
+</head>
+
+<body>
+    <div id="my-app">
+        <div class="container">
+            <div class="jumbotron">
+                <h1> CalVAD: California Vehicle Activity Database</h1>
+                <p>This is the primary interface to the California
+                Vehicle Activity Database. The goal is to use observed
+                data to estimate the actual hourly vehicle movement in
+                the state. While there are limitations to depending
+                solely on data, this offers a unique counter-point to
+                model-based approaches.
+                </p>
+                <div class="btn-toolbar" role="toolbar">
+                    <a class="btn btn-primary" href="http://lysithia.its.uci.edu/calvad/help/about.html">Learn More</a>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-6 col-md-6">
+                    <h2>Map Viewer</h2>
+                    <p>
+                        The map interface provides a way to view
+                        simple chards, and to download aggregated data
+                        for further analysis.
+                    </p>
+                    <div class="btn-toolbar" role="toolbar">
+                        <a class="btn btn-default" href="http://lysithia.its.uci.edu/calvad/map.html">
+                        Maps and Plots →
+                    </a>
+                    </div>
+                </div>
+                <div class="col-xs-6 col-md-6">
+                    <h2>Detector Inspector</h2>
+                    <p>
+                        The inspector tool allows low-level inspection
+                        of the detector data that forms the basis of
+                        CalVAD vehicle activity estimates.
+                    </p>
+                    <div class="btn-toolbar" role="toolbar">
+                        <a class="btn btn-default" href="http://lysithia.its.uci.edu/tracker/">
+                        Detectors →
+                    </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- <script type="text/javascript" src="main.js"></script> -->
+
+</body>
+
 </html>

@@ -15,8 +15,9 @@ var TARGET_ENV = process.env.npm_lifecycle_event === 'build' ? 'production' : 'd
 var commonConfig = {
 
   output: {
-    path:       path.resolve( __dirname, 'dist/' ),
-    filename: '[hash].js',
+      path:       path.resolve( __dirname, 'dist/' ),
+      filename: '[name].js',
+      chunkFilename: "[id].chunk.js"
   },
 
   resolve: {
@@ -39,10 +40,15 @@ var commonConfig = {
       template: 'src/static/index.html',
       inject:   'body',
       filename: 'index.html'
+    }),
+    new HtmlWebpackPlugin({
+      template: 'src/static/map.html',
+      inject:   'body',
+      filename: 'map.html'
     })
   ],
 
-  postcss: [ autoprefixer( { browsers: ['last 2 versions'] } ) ],
+  postcss: [ autoprefixer( { browsers: ['last 2 versions'] } ) ]
 
 }
 
@@ -54,7 +60,7 @@ if ( TARGET_ENV === 'development' ) {
 
     entry: [
       'webpack-dev-server/client?http://localhost:8080',
-      path.join( __dirname, 'src/static/index.js' )
+      path.join( __dirname, 'src/static/map.js' )
     ],
 
     devServer: {
@@ -105,7 +111,8 @@ if ( TARGET_ENV === 'production' ) {
 
   module.exports = merge( commonConfig, {
 
-    entry: path.join( __dirname, 'src/static/index.js' ),
+      entry: { index :  path.join( __dirname, 'src/static/index.js' ),
+               map :   path.join( __dirname, 'src/static/map.js' )},
 
     module: {
       loaders: [
