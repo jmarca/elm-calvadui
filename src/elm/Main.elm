@@ -519,6 +519,7 @@ update msg model =
 
     FetchDataFail e ->
         let
+            _ = Debug.log "fetch failed" e
             y = (toString (Date.year model.date))
             m = (pad (monthToInt (Date.month model.date)))
             d  = (pad (Date.day model.date))
