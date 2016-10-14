@@ -1,25 +1,39 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
-    <meta charSet="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>CalVAD</title>
     <meta name="description" content="CalVAD Landing Page"/>
     <meta name="author" content="James E. Marca"/>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico"/>
-    <!-- <link href="https://netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" /> -->
-    <style>
-        .jumbotron {
-            border-radius: 20px;
-            box-shadow: 0px 2px 5px 1px rgba(1, 0, 0, 0.3);
-        }
-    </style>
   </head>
 
     <title>CalVAD:  The California Vehicle Activity Database website</title>
 </head>
 
 <body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="./index.html">CalVAD</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="./map.html">Map</a></li>
+            <li><a href="http://lysithia.its.uci.edu/tracker/">Detectors</a></li>
+            <li><a href="#">Help</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
     <div id="my-app">
         <div class="container">
             <div class="jumbotron">
@@ -31,21 +45,21 @@
                 solely on data, this offers a unique counter-point to
                 model-based approaches.
                 </p>
-                <div class="btn-toolbar" role="toolbar">
-                    <a class="btn btn-primary" href="http://lysithia.its.uci.edu/calvad/help/about.html">Learn More</a>
-                </div>
             </div>
             <div class="row">
                 <div class="col-xs-6 col-md-6">
                     <h2>Map Viewer</h2>
                     <p>
-                        The map interface provides a way to view
-                        simple chards, and to download aggregated data
-                        for further analysis.
+                        The map interface provides a way to view the
+                        daily estimates of vehicle activity for each
+                        4km grid cell covering California.  The map
+                        demonstrates the breadth and scope of the
+                        kinds of data CalVAD has generated from the
+                        source inputs.
                     </p>
                     <div class="btn-toolbar" role="toolbar">
-                        <a class="btn btn-default" href="http://lysithia.its.uci.edu/calvad/map.html">
-                        Maps and Plots →
+                        <a class="btn btn-default" href="./map.html">
+                        Map of Grids →
                     </a>
                     </div>
                 </div>
@@ -65,8 +79,6 @@
             </div>
         </div>
     </div>
-
-    <!-- <script type="text/javascript" src="main.js"></script> -->
 
 </body>
 

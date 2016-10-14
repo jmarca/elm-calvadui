@@ -34,18 +34,30 @@ var commonConfig = {
       }
     ]
   },
+    plugins: [
 
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: 'src/static/index.html',
-      inject:   'body',
-      filename: 'index.html'
-    }),
-    new HtmlWebpackPlugin({
-      template: 'src/static/map.html',
-      inject:   'body',
-      filename: 'map.html'
-    })
+        new HtmlWebpackPlugin({
+            title: "CalVAD",
+            filename: "index.html",
+            excludeChunks: ['map'],
+            template: __dirname + "/src/static/index.html"
+        }),
+        new HtmlWebpackPlugin({
+            title: "CalVAD grid map interface",
+            filename: "map.html",
+            excludeChunks: ['index'],
+            template: __dirname + "/src/static/map.html"
+        })
+    // new HtmlWebpackPlugin({
+    //   template: 'src/static/index.html',
+    //   inject:   'body',
+    //   filename: 'index.html'
+    // }),
+    // new HtmlWebpackPlugin({
+    //   template: 'src/static/map.html',
+    //   inject:   'body',
+    //   filename: 'map.html'
+    // })
   ],
 
   postcss: [ autoprefixer( { browsers: ['last 2 versions'] } ) ]
@@ -111,8 +123,8 @@ if ( TARGET_ENV === 'production' ) {
 
   module.exports = merge( commonConfig, {
 
-      entry: { index :  path.join( __dirname, 'src/static/index.js' ),
-               map :   path.join( __dirname, 'src/static/map.js' )},
+      entry: { index :  path.join( __dirname, 'src/static/index' ),
+               map :   path.join( __dirname, 'src/static/map' )},
 
     module: {
       loaders: [
@@ -132,33 +144,33 @@ if ( TARGET_ENV === 'production' ) {
       ]
     },
 
-    plugins: [
-      new CopyWebpackPlugin([
-        {
-          from: 'src/static/img/',
-          to:   'static/img/'
-        },
-        // {
-        //   from: 'src/static/data/',
-        //   to:   'static/data/'
-        // },
-        {
-          from: 'src/favicon.ico'
-        },
-      ]),
+      plugins: [
+          new CopyWebpackPlugin([
+              {
+                  from: 'src/static/img/',
+                  to:   'static/img/'
+              },
+              // {
+              //   from: 'src/static/data/',
+              //   to:   'static/data/'
+              // },
+              {
+                  from: 'src/favicon.ico'
+              },
+          ]),
 
-      new webpack.optimize.OccurenceOrderPlugin(),
+          new webpack.optimize.OccurenceOrderPlugin(),
 
-      // extract CSS into a separate file
-      new ExtractTextPlugin( './[hash].css', { allChunks: true } ),
+          // extract CSS into a separate file
+          new ExtractTextPlugin( './[hash].css', { allChunks: true } ),
 
-      // minify & mangle JS/CSS
-      new webpack.optimize.UglifyJsPlugin({
-          minimize:   true,
-          compressor: { warnings: false }
-          // mangle:  true
-      })
-    ]
+          // minify & mangle JS/CSS
+          new webpack.optimize.UglifyJsPlugin({
+              minimize:   true,
+              compressor: { warnings: false }
+              // mangle:  true
+          })
+      ]
 
   });
 }
