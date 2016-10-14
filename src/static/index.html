@@ -1,16 +1,85 @@
 <!DOCTYPE html>
 <html lang="en-us">
   <head>
-    <meta charSet="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CalVAD map interface</title>
-    <meta name="description" content="CalVAD map UI (Elm)"/>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CalVAD</title>
+    <meta name="description" content="CalVAD Landing Page"/>
     <meta name="author" content="James E. Marca"/>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico"/>
   </head>
-  <body>
-      <div id="content">
-          <div id="app"></div>
+
+    <title>CalVAD:  The California Vehicle Activity Database website</title>
+</head>
+
+<body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="./index.html">CalVAD</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="./map.html">Map</a></li>
+            <li><a href="http://lysithia.its.uci.edu/tracker/">Detectors</a></li>
+            <li><a href="#">Help</a></li>
+          </ul>
+        </div>
       </div>
-  </body>
+    </nav>
+    <div id="my-app">
+        <div class="container">
+            <div class="jumbotron">
+                <h1> CalVAD: California Vehicle Activity Database</h1>
+                <p>This is the primary interface to the California
+                Vehicle Activity Database. The goal is to use observed
+                data to estimate the actual hourly vehicle movement in
+                the state. While there are limitations to depending
+                solely on data, this offers a unique counter-point to
+                model-based approaches.
+                </p>
+            </div>
+            <div class="row">
+                <div class="col-xs-6 col-md-6">
+                    <h2>Map Viewer</h2>
+                    <p>
+                        The map interface provides a way to view the
+                        daily estimates of vehicle activity for each
+                        4km grid cell covering California.  The map
+                        demonstrates the breadth and scope of the
+                        kinds of data CalVAD has generated from the
+                        source inputs.
+                    </p>
+                    <div class="btn-toolbar" role="toolbar">
+                        <a class="btn btn-default" href="./map.html">
+                        Map of Grids →
+                    </a>
+                    </div>
+                </div>
+                <div class="col-xs-6 col-md-6">
+                    <h2>Detector Inspector</h2>
+                    <p>
+                        The inspector tool allows low-level inspection
+                        of the detector data that forms the basis of
+                        CalVAD vehicle activity estimates.
+                    </p>
+                    <div class="btn-toolbar" role="toolbar">
+                        <a class="btn btn-default" href="http://lysithia.its.uci.edu/tracker/">
+                        Detectors →
+                    </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
 </html>
