@@ -74,7 +74,7 @@ type alias Model =
     ,hpmsRoadTypes : Array PlottingButton
     ,detectorPlotVars : Array PlottingButton
     ,colorData : Dict String (Dict String (Dict String Float))
-    ,sumVMT : Maybe Float
+    ,sumVMT : Maybe String
     ,scaleDomain : Int
     ,autoMax : Bool
     ,scaleExponent : Float
@@ -265,10 +265,12 @@ init fl =
 port d3Update : (List String) -> Cmd msg
 port getTopoJson : Json.Value -> Cmd msg
 port getColorJson2 : ColorMessages  -> Cmd msg
+port getFormattedVMT : Float -> Cmd msg
 
 -- port for listening for translated features from JavaScript
 port features : (List PathRecord -> msg) -> Sub msg
 port colors   : (Json.Value -> msg) -> Sub msg
+port vmt : (String -> msg) -> Sub msg
 
 type BtnMsg
     = DetectorBased
@@ -289,7 +291,7 @@ type Msg
   | NewHour String
   | HandleButton BtnMsg Int String
   | ScaleDomain String
-  | SumVMT Float
+  | SumVMT String
   | AutoMax
   | ScaleExponent String
   | ScaleOpacity String
@@ -553,6 +555,7 @@ subscriptions model =
     Sub.batch
         [ features IdPath
         , colors ColorMap
+        , vmt SumVMT
         ]
 
 
@@ -836,7 +839,7 @@ view model =
                                                    , textAnchor "middle"
                                                    , class "vmtsum"][Svg.text  (case model.sumVMT of
                                                                             Nothing -> ""
-                                                                            Just vmt -> (toString vmt))]]
+                                                                            Just vmt -> ("Total VMT is " ++ vmt))]]
                                      ]
                                 ]
 
@@ -961,7 +964,7 @@ getColorJson model =
         datablob = ( Dict.toList (Dict.filter dropZeros (sumDataValues model)))
         sumvmt = List.foldr sumBlob 0 datablob
     in
-        Cmd.batch([Cmd.Extra.message (SumVMT sumvmt)
+        Cmd.batch([ getFormattedVMT sumvmt
                   , getColorJson2 { maxdomain = if model.autoMax
                                                 then 0
                                                 else model.scaleDomain
