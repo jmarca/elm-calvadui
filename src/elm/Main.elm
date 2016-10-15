@@ -74,6 +74,7 @@ type alias Model =
     ,hpmsRoadTypes : Array PlottingButton
     ,detectorPlotVars : Array PlottingButton
     ,colorData : Dict String (Dict String (Dict String Float))
+    ,sumVMT : Maybe String
     ,scaleDomain : Int
     ,autoMax : Bool
     ,scaleExponent : Float
@@ -246,6 +247,7 @@ init fl =
         , colorData = Dict.empty
         , fetchingColors = False
         , showingDate = Nothing
+        , sumVMT = Nothing
         , scaleDomain = 190000
         , autoMax = False
         , scaleExponent = 0.3
@@ -263,10 +265,12 @@ init fl =
 port d3Update : (List String) -> Cmd msg
 port getTopoJson : Json.Value -> Cmd msg
 port getColorJson2 : ColorMessages  -> Cmd msg
+port getFormattedVMT : Float -> Cmd msg
 
 -- port for listening for translated features from JavaScript
 port features : (List PathRecord -> msg) -> Sub msg
 port colors   : (Json.Value -> msg) -> Sub msg
+port vmt : (String -> msg) -> Sub msg
 
 type BtnMsg
     = DetectorBased
@@ -287,6 +291,7 @@ type Msg
   | NewHour String
   | HandleButton BtnMsg Int String
   | ScaleDomain String
+  | SumVMT String
   | AutoMax
   | ScaleExponent String
   | ScaleOpacity String
@@ -427,6 +432,9 @@ update msg model =
                                 , getColorJson {model | detectorPlotVars = newArr})
                         _ -> (model, Cmd.none)
 
+    SumVMT sumvmt ->
+        ({model | sumVMT = Just sumvmt},Cmd.none)
+
     AutoMax ->
         ({model | autoMax = (not model.autoMax)}
         , getColorJson {model |  autoMax = (not model.autoMax)})
@@ -547,6 +555,7 @@ subscriptions model =
     Sub.batch
         [ features IdPath
         , colors ColorMap
+        , vmt SumVMT
         ]
 
 
@@ -804,7 +813,7 @@ view model =
                                             , Attr.style [("fill-opacity", (toString model.opacity))]
                                             ] (svgpaths2 records model.data)
                                      ]
-                                     ,Svg.svg [  width "500", height "300"]
+                                     ,Svg.svg [  width "500", height "400"]
                                      [Svg.text'
                                          [x "250"
                                          , y "24"
@@ -818,11 +827,27 @@ view model =
                                             , width "500"
                                             , height "200"
                                             , SvgAttr.transform "translate(0,60)"][]
-                                     ]],
-                                (mapcontrol model)
+
+                                     ,Svg.g [ class "sums"
+                                            , width "500"
+                                            , height "100"
+                                            , SvgAttr.transform "translate(0,280)"]
+                                         [Svg.text'[x "250"
+                                                   , y "24"
+                                                   , fontSize "24"
+                                                   , alignmentBaseline "middle"
+                                                   , textAnchor "middle"
+                                                   , class "vmtsum"][Svg.text  (case model.sumVMT of
+                                                                            Nothing -> ""
+                                                                            Just vmt -> ("Total VMT is " ++ vmt))]]
+                                     ]
+                                ]
+
+                                ,(mapcontrol model)
                            ]
                       ]
-                      )
+
+                )
 
 
 
@@ -929,18 +954,23 @@ dropZeros : String -> Float -> Bool
 dropZeros k v =
     (not (v == 0.0))
 
+sumBlob : (String, Float) -> Float -> Float
+sumBlob (_, value) sum =    value + sum
+
 
 getColorJson : Model -> Cmd Msg
 getColorJson model =
     let
         datablob = ( Dict.toList (Dict.filter dropZeros (sumDataValues model)))
+        sumvmt = List.foldr sumBlob 0 datablob
     in
-        getColorJson2 { maxdomain = if model.autoMax
-                                    then 0
-                                    else model.scaleDomain
-                      , exponent = model.scaleExponent
-                      , data = datablob}
-
+        Cmd.batch([ getFormattedVMT sumvmt
+                  , getColorJson2 { maxdomain = if model.autoMax
+                                                then 0
+                                                else model.scaleDomain
+                                  , exponent = model.scaleExponent
+                                  , data = datablob}
+                      ])
 
 
 getIt2 : String -> Cmd Msg

@@ -4,6 +4,9 @@ require( './styles/main.scss' );
 var handleColor = require("./handleColor.js")
 var handleTopo = require("./handleTopo.js")
 
+var d3 = require('d3')
+var formatCount = d3.format(".0s")
+
 
 // inject bundled Elm app into div#main
 var Elm = require( '../elm/Main' );
@@ -17,6 +20,17 @@ var app =
             ,'day':1
             ,'hour':1
         })
+
+/**
+ * getFormattedVMT handler
+ * @param {Number} sumvmt
+ * @returns {null}
+ */
+app.ports.getFormattedVMT.subscribe(function(sumvmt){
+    app.ports.vmt.send(formatCount(sumvmt))
+    return null
+})
+
 
 /**
  * getColorJson2 handler
