@@ -14,6 +14,7 @@ var Elm = require( '../elm/Main' );
 var app =
         Elm.Main.embed(document.getElementById("app"),{
             'mapfile':'data/CA_grid_topology4326.json'
+            ,'membershipfile':'grid/cellmembership.json'
             ,'dataUrl':'hpms/data_by_hr'
             ,'year':2012
             ,'month':1

@@ -55,10 +55,18 @@ type alias ColorResponse =
     {data : Dict String String
     ,newmax : Int}
 
+type alias AreaMembership =
+    {airbasin: String
+    ,bas : String
+    ,county : String
+    ,airdistrict : String
+    ,dis : String}
+
 type alias Model =
     {file : String
     ,records : Maybe (List PathRecord)
     ,data : Maybe (Dict String String)
+    ,membership : Maybe (Dict String AreaMembership)
     ,dataUrl : String
     ,fetchingColors : Bool
     ,showingDate : Maybe String
@@ -88,6 +96,7 @@ type alias ColorMessages =
 
 type alias Flags =
     {mapfile : String
+    ,membershipfile : String
     ,dataUrl : String
     ,year : Int
     ,month : Int
@@ -121,6 +130,7 @@ init fl =
         , dataUrl = fl.dataUrl
         , records = Nothing
         , data = Nothing
+        , membership = Nothing
         , detectorBased = { entry = ""
                           , value = "detectorbased"
                           , class = "detector btn"
@@ -252,7 +262,8 @@ init fl =
         , autoMax = False
         , scaleExponent = 0.3
         , opacity = 0.5}
-         ! [ Cmd.batch([getIt2 fl.mapfile
+         ! [ Cmd.batch([ getIt2 fl.mapfile
+                       , getIt3 fl.membershipfile
                        , Cmd.map ToDatePicker datePickerFx
                        ])]
 
@@ -282,6 +293,7 @@ type BtnMsg
 type Msg
   = MorePlease
   | FetchSucceed2 Json.Value
+  | FetchSucceed3 Dict String AreaMembership
   | FetchDataSucceed (Dict String (Dict String (Dict String Float)))
   | IdPath (List PathRecord)
   | ColorMap Json.Value
@@ -477,6 +489,9 @@ update msg model =
 
     FetchSucceed2 rec ->
         (model, getTopoJson rec)
+
+    FetchSucceed3 rec ->
+        ({model | membership = Just rec} , Cmd.none)
 
     FetchDataSucceed rec ->
         let
@@ -983,6 +998,14 @@ getIt2 f =
 
 decodeResult2 : Json.Decoder Json.Value
 decodeResult2 = Json.value
+
+
+getIt3 : String -> Cmd Msg
+getIt3 url =
+    Task.perform FetchFail FetchSucceed3 (Http.get decodeResult3 url)
+
+decodeResult3 : Json.Decoder (Dict String AreaMembership)
+decodeResult3 = dict Json.string
 
 
 gridDataDictionary : Json.Decoder (Dict String (Dict String (Dict String Float)))
