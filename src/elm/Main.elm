@@ -57,10 +57,9 @@ type alias ColorResponse =
 
 type alias AreaMembership =
     {airbasin: String
-    ,bas : String
     ,county : String
     ,airdistrict : String
-    ,dis : String}
+    }
 
 type alias Model =
     {file : String
@@ -293,7 +292,7 @@ type BtnMsg
 type Msg
   = MorePlease
   | FetchSucceed2 Json.Value
-  | FetchSucceed3 Dict String AreaMembership
+  | FetchSucceed3 (Dict String AreaMembership)
   | FetchDataSucceed (Dict String (Dict String (Dict String Float)))
   | IdPath (List PathRecord)
   | ColorMap Json.Value
@@ -1005,7 +1004,14 @@ getIt3 url =
     Task.perform FetchFail FetchSucceed3 (Http.get decodeResult3 url)
 
 decodeResult3 : Json.Decoder (Dict String AreaMembership)
-decodeResult3 = dict Json.string
+decodeResult3 = dict areaMembership
+
+areaMembership : Json.Decoder AreaMembership
+areaMembership =
+    object3 AreaMembership
+        ("airbsin" := Json.string)
+        ("county" := Json.string)
+        ("airdistrict" := Json.string)
 
 
 gridDataDictionary : Json.Decoder (Dict String (Dict String (Dict String Float)))
