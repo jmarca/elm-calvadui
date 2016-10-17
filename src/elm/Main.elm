@@ -55,19 +55,28 @@ type alias ColorResponse =
     {data : Dict String String
     ,newmax : Int}
 
+type AreaType
+    = County
+    | Airbasin
+    | Airdistrict
+    | Statewide
+
 
 type alias AreaMembership =
-    {airbasin: String
-    ,county : String
-    ,airdistrict : String
+    {airbasin: Dict String (List String)
+    ,county : Dict String (List String)
+    ,airdistrict : Dict String (List String)
     }
+
+
+
 
 type alias Model =
     {file : String
     ,records : Maybe (List PathRecord)
     ,data : Maybe (Dict String String)
-    ,membership : Maybe (Dict String AreaMembership)
-    ,areaTypePicked : Maybe String
+    ,membership : Maybe AreaMembership
+    ,areaTypePicked : AreaType
     ,areasPicked : Maybe (List String)
     ,dataUrl : String
     ,fetchingColors : Bool
@@ -133,7 +142,7 @@ init fl =
         , records = Nothing
         , data = Nothing
         , membership = Nothing
-        , areaTypePicked = Nothing
+        , areaTypePicked = Statewide
         , areasPicked = Nothing
         , detectorBased = { entry = ""
                           , value = "detectorbased"
@@ -297,7 +306,7 @@ type BtnMsg
 type Msg
   = MorePlease
   | FetchSucceed2 Json.Value
-  | FetchSucceed3 (Dict String AreaMembership)
+  | FetchSucceed3 AreaMembership
   | FetchDataSucceed (Dict String (Dict String (Dict String Float)))
   | IdPath (List PathRecord)
   | ColorMap Json.Value
@@ -977,13 +986,27 @@ makeSummer model  =
         gridDictResult
 
 
+-- getCounty : Dict String AreaMembership
+
 -- iterate over the colorData, summing up the appropriate values
 -- inside each grid cell
 sumDataValues :  Model -> List (String, Float)
 sumDataValues model =
     let
         -- use gridkeys here, so that I can pick just county, etc later
-        gridkeys = Dict.keys model.colorData
+        gridkeys = case model.areaTypePicked of
+                       Statewide ->
+                           Dict.keys model.colorData
+                       -- County ->
+                       --     let
+                       --         -- for each of the picked areas,
+                       --         -- concatenate the "county" grid
+                       --         -- entries that match
+                       --         aplist = Maybe.withDefault [] model.areasPicked
+                       --         gridlist = Dict.filter List.map getCounty aplist
+                       --     in
+                       --         List.concat gridlist
+                       _ -> []
 
         -- for each key, I need to sum up the appropriate values in
         -- the colorData dictionary of data.  So make the summer,
@@ -1044,15 +1067,12 @@ getIt3 : String -> Cmd Msg
 getIt3 url =
     Task.perform FetchFail FetchSucceed3 (Http.get decodeResult3 url)
 
-decodeResult3 : Json.Decoder (Dict String AreaMembership)
-decodeResult3 = dict areaMembership
-
-areaMembership : Json.Decoder AreaMembership
-areaMembership =
+decodeResult3 : Json.Decoder AreaMembership
+decodeResult3 =
     object3 AreaMembership
-        ("airbsin" := Json.string)
-        ("county" := Json.string)
-        ("airdistrict" := Json.string)
+        ("airbsin" := Json.dict (Json.list Json.string))
+        ("county" := Json.dict (Json.list Json.string))
+        ("airdistrict" := Json.dict (Json.list Json.string))
 
 
 gridDataDictionary : Json.Decoder (Dict String (Dict String (Dict String Float)))
