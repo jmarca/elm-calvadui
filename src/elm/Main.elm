@@ -907,67 +907,6 @@ checkOn category button = category.on && button.on
 matchOn : String -> PlottingButton -> Bool
 matchOn key button =  button.matchFn key
 
--- sumValues : Model -> (String -> String -> Float -> Float)
--- sumValues model =
---     -- check here whether to bother with dictkey
---     let
---         hpmsBased =  model.hpmsBased
---         detectorBased = model.detectorBased
-
---         relevantRoadTypes = Array.filter .relevant model.hpmsRoadTypes
---         -- filter out irrelevant buttons (those not on)
---         hpmsRoadTypes = List.filter (checkOn hpmsBased) (Array.toList relevantRoadTypes)
---         hpmsPlotVars =  List.filter (checkOn hpmsBased) (Array.toList model.hpmsPlotVars)
---         detectorPlotVars = List.filter (checkOn detectorBased) (Array.toList model.detectorPlotVars)
-
---         -- now decide about this key.  look through each button
---         -- it is either hpms based, or detector based entry.
-
---         -- condense the tests.  If ANY pass, then keep the entry for summing
---         -- need to check for degenerate cases
---         buttonTests =  if detectorBased.on
---                        then detectorBased :: hpmsRoadTypes
---                        else hpmsRoadTypes
-
---         summer : String -> String  -> Float -> Float
---         summer dictkey gridkey start =
---             let
---                 mydict = Maybe.withDefault Dict.empty
---                          (Dict.get gridkey model.colorData)
-
---                 isWorthy = List.any (matchOn dictkey) buttonTests
---                 -- blblb = Debug.log (dictkey ++ " isWorthy: ") isWorthy
---             in
---                 if (not isWorthy)
---                 -- then ( Debug.log (dictkey ++ " skipping case ") (start + 0.0))
---                 then  (start + 0.0)
---                 else
---                     let
---                     -- filterDict = Dict.filter (dataTypeFilter pv) mydict
---                         dplotlist = if detectorBased.on
---                                      -- if a detector based thing, then use those plot vars
---                                     then List.map (\l -> l.entry ) detectorPlotVars
---                                     else []
---                                     -- now to hpms conditions
---                         hplotlist = if hpmsBased.on
---                                     -- if an hpms based thing, then use those plot vars
---                                     then List.map (\l -> l.entry ) hpmsPlotVars
---                                     else []
---                         plotlist = List.concat [dplotlist, hplotlist]
---                     in
---                         List.foldl (getter mydict) start plotlist
---     in
---         summer
-
-
--- gridReduce : (String -> String -> Float -> Float) -> String ->  (String, Float)
--- gridReduce redfn gridid gridkey =
---     let
---         myval = redfn gridkey 0.0
---     in
---         (gridkey, myval)
-
-
 
 makeSummer : Model -> String -> (String,Float)
 makeSummer model  =
