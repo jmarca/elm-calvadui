@@ -62,11 +62,8 @@ type AreaType
     | Statewide
 
 
-type alias AreaMembership =
-    {airbasin: Dict String (List String)
-    ,county : Dict String (List String)
-    ,airdistrict : Dict String (List String)
-    }
+type alias AreaMembership = Dict String (List String)
+
 
 
 
@@ -75,7 +72,9 @@ type alias Model =
     {file : String
     ,records : Maybe (List PathRecord)
     ,data : Maybe (Dict String String)
-    ,membership : Maybe AreaMembership
+    ,county_membership : Maybe AreaMembership
+    ,airdistrict_membership : Maybe AreaMembership
+    ,airbasin_membership : Maybe AreaMembership
     ,areaTypePicked : AreaType
     ,areasPicked : Maybe (List String)
     ,dataUrl : String
@@ -141,7 +140,9 @@ init fl =
         , dataUrl = fl.dataUrl
         , records = Nothing
         , data = Nothing
-        , membership = Nothing
+        , county_membership = Nothing
+        , airdistrict_membership = Nothing
+        , airbasin_membership = Nothing
         , areaTypePicked = Statewide
         , areasPicked = Nothing
         , detectorBased = { entry = ""
@@ -504,7 +505,7 @@ update msg model =
         (model, getTopoJson rec)
 
     FetchSucceed3 rec ->
-        ({model | membership = Just rec} , Cmd.none)
+        ({model | county_membership = Just rec} , Cmd.none)
 
     FetchDataSucceed rec ->
         let
@@ -1069,10 +1070,7 @@ getIt3 url =
 
 decodeResult3 : Json.Decoder AreaMembership
 decodeResult3 =
-    object3 AreaMembership
-        ("airbsin" := Json.dict (Json.list Json.string))
-        ("county" := Json.dict (Json.list Json.string))
-        ("airdistrict" := Json.dict (Json.list Json.string))
+     Json.dict (Json.list Json.string)
 
 
 gridDataDictionary : Json.Decoder (Dict String (Dict String (Dict String Float)))
