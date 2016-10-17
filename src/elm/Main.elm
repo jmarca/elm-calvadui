@@ -55,6 +55,7 @@ type alias ColorResponse =
     {data : Dict String String
     ,newmax : Int}
 
+
 type alias AreaMembership =
     {airbasin: String
     ,county : String
@@ -66,6 +67,8 @@ type alias Model =
     ,records : Maybe (List PathRecord)
     ,data : Maybe (Dict String String)
     ,membership : Maybe (Dict String AreaMembership)
+    ,areaTypePicked : Maybe String
+    ,areasPicked : Maybe (List String)
     ,dataUrl : String
     ,fetchingColors : Bool
     ,showingDate : Maybe String
@@ -130,6 +133,8 @@ init fl =
         , records = Nothing
         , data = Nothing
         , membership = Nothing
+        , areaTypePicked = Nothing
+        , areasPicked = Nothing
         , detectorBased = { entry = ""
                           , value = "detectorbased"
                           , class = "detector btn"
@@ -902,10 +907,73 @@ checkOn category button = category.on && button.on
 matchOn : String -> PlottingButton -> Bool
 matchOn key button =  button.matchFn key
 
-sumValues : Model -> (String -> Dict String Float -> Float -> Float)
-sumValues model =
-    -- check here whether to bother with dictkey
+-- sumValues : Model -> (String -> String -> Float -> Float)
+-- sumValues model =
+--     -- check here whether to bother with dictkey
+--     let
+--         hpmsBased =  model.hpmsBased
+--         detectorBased = model.detectorBased
+
+--         relevantRoadTypes = Array.filter .relevant model.hpmsRoadTypes
+--         -- filter out irrelevant buttons (those not on)
+--         hpmsRoadTypes = List.filter (checkOn hpmsBased) (Array.toList relevantRoadTypes)
+--         hpmsPlotVars =  List.filter (checkOn hpmsBased) (Array.toList model.hpmsPlotVars)
+--         detectorPlotVars = List.filter (checkOn detectorBased) (Array.toList model.detectorPlotVars)
+
+--         -- now decide about this key.  look through each button
+--         -- it is either hpms based, or detector based entry.
+
+--         -- condense the tests.  If ANY pass, then keep the entry for summing
+--         -- need to check for degenerate cases
+--         buttonTests =  if detectorBased.on
+--                        then detectorBased :: hpmsRoadTypes
+--                        else hpmsRoadTypes
+
+--         summer : String -> String  -> Float -> Float
+--         summer dictkey gridkey start =
+--             let
+--                 mydict = Maybe.withDefault Dict.empty
+--                          (Dict.get gridkey model.colorData)
+
+--                 isWorthy = List.any (matchOn dictkey) buttonTests
+--                 -- blblb = Debug.log (dictkey ++ " isWorthy: ") isWorthy
+--             in
+--                 if (not isWorthy)
+--                 -- then ( Debug.log (dictkey ++ " skipping case ") (start + 0.0))
+--                 then  (start + 0.0)
+--                 else
+--                     let
+--                     -- filterDict = Dict.filter (dataTypeFilter pv) mydict
+--                         dplotlist = if detectorBased.on
+--                                      -- if a detector based thing, then use those plot vars
+--                                     then List.map (\l -> l.entry ) detectorPlotVars
+--                                     else []
+--                                     -- now to hpms conditions
+--                         hplotlist = if hpmsBased.on
+--                                     -- if an hpms based thing, then use those plot vars
+--                                     then List.map (\l -> l.entry ) hpmsPlotVars
+--                                     else []
+--                         plotlist = List.concat [dplotlist, hplotlist]
+--                     in
+--                         List.foldl (getter mydict) start plotlist
+--     in
+--         summer
+
+
+-- gridReduce : (String -> String -> Float -> Float) -> String ->  (String, Float)
+-- gridReduce redfn gridid gridkey =
+--     let
+--         myval = redfn gridkey 0.0
+--     in
+--         (gridkey, myval)
+
+
+
+makeSummer : Model -> String -> (String,Float)
+makeSummer model  =
     let
+        -- first, what are the keys I'm going to be summing up inside
+        -- the grid's dictionary?
         hpmsBased =  model.hpmsBased
         detectorBased = model.detectorBased
 
@@ -915,57 +983,84 @@ sumValues model =
         hpmsPlotVars =  List.filter (checkOn hpmsBased) (Array.toList model.hpmsPlotVars)
         detectorPlotVars = List.filter (checkOn detectorBased) (Array.toList model.detectorPlotVars)
 
-        -- now decide about this key.  look through each button
-        -- it is either hpms based, or detector based entry.
-
         -- condense the tests.  If ANY pass, then keep the entry for summing
         -- need to check for degenerate cases
         buttonTests =  if detectorBased.on
                        then detectorBased :: hpmsRoadTypes
                        else hpmsRoadTypes
 
-        summer : String -> Dict String Float -> Float -> Float
-        summer dictkey mydict start =
+        -- if a detector based thing, then
+        -- use those plot vars
+        dplotlist = if detectorBased.on
+                    then List.map (\l -> l.entry ) detectorPlotVars
+                    else []
+        -- now to hpms conditions
+        hplotlist = if hpmsBased.on
+                    then List.map (\l -> l.entry ) hpmsPlotVars
+                    else []
+        plotlist = List.concat [dplotlist, hplotlist]
+
+        gridDictResult : String -> (String, Float)
+        gridDictResult gridkey =
             let
-                isWorthy = List.any (matchOn dictkey) buttonTests
-                -- blblb = Debug.log (dictkey ++ " isWorthy: ") isWorthy
+                -- then, what is the grid?
+                mydict = Dict.get gridkey model.colorData
+                -- mydict is a Dict String (Dict String Float)
+                         -- where the first string is road types, and the
+                         -- second string is data types (vmt, etc)
             in
-                if (not isWorthy)
-                -- then ( Debug.log (dictkey ++ " skipping case ") (start + 0.0))
-                then  (start + 0.0)
-                else
-                    let
-                    -- filterDict = Dict.filter (dataTypeFilter pv) mydict
-                        dplotlist = if detectorBased.on
-                                     -- if a detector based thing, then use those plot vars
-                                    then List.map (\l -> l.entry ) detectorPlotVars
-                                    else []
-                                    -- now to hpms conditions
-                        hplotlist = if hpmsBased.on
-                                    -- if an hpms based thing, then use those plot vars
-                                    then List.map (\l -> l.entry ) hpmsPlotVars
-                                    else []
-                        plotlist = List.concat [dplotlist, hplotlist]
-                    in
-                        List.foldl (getter mydict) start plotlist
+                case mydict of
+                    Nothing -> (gridkey, 0)
+                    Just d  ->
+                        -- have a dictionary.  sum over road types
+                        -- sum up the relevant keys
+                        let
+                            -- make a summation function
+                            -- for dictonary pass
+                            dictsum :  String -> (Dict String Float) -> Float -> Float
+                            dictsum dictkey thisdict total =
+
+                           -- decide about this key.  look through each button it
+                           -- is either hpms based, or detector based entry.
+                                let
+                                    isWorthy = List.any (matchOn dictkey) buttonTests
+                                in
+                                    if (not isWorthy)
+                                    -- then ( Debug.log (dictkey ++ " skipping case ") (start + 0.0))
+                                    then
+                                        (total + 0.0)
+                                    else
+                                        List.foldl (getter thisdict) total plotlist
+                        in
+                            (gridkey, Dict.foldl dictsum 0.0 d)
+
     in
-        summer
+        gridDictResult
 
 
-gridReduce : (String -> Dict String Float -> Float -> Float) -> String ->  (Dict String (Dict String Float) ) -> Float
-gridReduce redfn gridid griddata =
-    Dict.foldl redfn  0.0 griddata
-
-sumDataValues :  Model -> Dict String Float
+-- iterate over the colorData, summing up the appropriate values
+-- inside each grid cell
+sumDataValues :  Model -> List (String, Float)
 sumDataValues model =
     let
-        redfn =  sumValues model
+        -- use gridkeys here, so that I can pick just county, etc later
+        gridkeys = Dict.keys model.colorData
+
+        -- for each key, I need to sum up the appropriate values in
+        -- the colorData dictionary of data.  So make the summer,
+        -- which is based on the model, using the current state of the
+        -- various button presses
+        redfn =  makeSummer model
+
     in
 
-    Dict.map (gridReduce redfn)  model.colorData
+        -- then that reduce function can be applied to the grid keys,
+        -- and will generate a list of (String, Float)
+        List.map redfn gridkeys
 
-dropZeros : String -> Float -> Bool
-dropZeros k v =
+
+dropZeros : (String, Float) -> Bool
+dropZeros (_, v) =
     (not (v == 0.0))
 
 sumBlob : (String, Float) -> Float -> Float
@@ -975,7 +1070,14 @@ sumBlob (_, value) sum =    value + sum
 getColorJson : Model -> Cmd Msg
 getColorJson model =
     let
-        datablob = ( Dict.toList (Dict.filter dropZeros (sumDataValues model)))
+        -- datablob can become a JS object of key,value pairs
+        -- gridid : Float
+        -- so that getColorJson2 can convert Float to colors
+        --
+        -- sumDataValues model does the summing, needs to generate a
+        -- list of string,float
+
+        datablob =  (List.filter dropZeros (sumDataValues model))
         sumvmt = List.foldr sumBlob 0 datablob
     in
         Cmd.batch([ getFormattedVMT sumvmt
