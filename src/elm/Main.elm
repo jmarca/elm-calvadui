@@ -987,7 +987,11 @@ makeSummer model  =
         gridDictResult
 
 
--- getCounty : Dict String AreaMembership
+subsetAreas : List String -> String -> (List String) -> Bool
+subsetAreas keeplist area _ =
+    List.member area keeplist
+
+
 
 -- iterate over the colorData, summing up the appropriate values
 -- inside each grid cell
@@ -998,15 +1002,17 @@ sumDataValues model =
         gridkeys = case model.areaTypePicked of
                        Statewide ->
                            Dict.keys model.colorData
-                       -- County ->
-                       --     let
-                       --         -- for each of the picked areas,
-                       --         -- concatenate the "county" grid
-                       --         -- entries that match
-                       --         aplist = Maybe.withDefault [] model.areasPicked
-                       --         gridlist = Dict.filter List.map getCounty aplist
-                       --     in
-                       --         List.concat gridlist
+                       County ->
+                            let
+                                -- for each of the picked areas,
+                                -- concatenate the "county" grid
+                                -- entries that match
+                               aplist = Maybe.withDefault [] model.areasPicked
+                               membership = Maybe.withDefault Dict.empty model.county_membership
+                               griddict = Dict.filter (subsetAreas aplist) membership
+                               gridlists = Dict.values griddict
+                           in
+                               List.concat gridlists
                        _ -> []
 
         -- for each key, I need to sum up the appropriate values in
