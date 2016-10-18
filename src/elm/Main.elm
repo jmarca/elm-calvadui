@@ -20,6 +20,7 @@ import Date.Extra.Period as Period exposing (Period (..))
 import Dict exposing (..)
 import Regex exposing (..)
 import Array exposing (..)
+import Set exposing (..)
 
 main : Program Flags
 main =
@@ -75,8 +76,9 @@ type alias Model =
     ,county_membership : Maybe AreaMembership
     ,airdistrict_membership : Maybe AreaMembership
     ,airbasin_membership : Maybe AreaMembership
+    ,areaPickerExpanded : Bool
     ,areaTypePicked : AreaType
-    ,areasPicked : Maybe (List String)
+    ,areasPicked : Maybe (Set String)
     ,dataUrl : String
     ,fetchingColors : Bool
     ,showingDate : Maybe String
@@ -143,6 +145,7 @@ init fl =
         , county_membership = Nothing
         , airdistrict_membership = Nothing
         , airbasin_membership = Nothing
+        , areaPickerExpanded = False
         , areaTypePicked = Statewide
         , areasPicked = Nothing
         , detectorBased = { entry = ""
@@ -316,6 +319,9 @@ type Msg
   | ToDatePicker DatePicker.Msg
   | NewHour String
   | HandleButton BtnMsg Int String
+  | AreaPickerToggle
+  | HandleArea AreaType
+  | ToggleArea String
   | ScaleDomain String
   | SumVMT String
   | AutoMax
@@ -457,6 +463,36 @@ update msg model =
                                 ({model | detectorPlotVars = newArr}
                                 , getColorJson {model | detectorPlotVars = newArr})
                         _ -> (model, Cmd.none)
+
+    AreaPickerToggle ->
+        ({model | areaPickerExpanded = (not model.areaPickerExpanded)}
+             ,Cmd.none)
+
+    HandleArea msg ->
+        let
+            newareas = if msg == model.areaTypePicked
+                       then model.areasPicked
+                       else Nothing
+            newmodel = {model | areaTypePicked = msg
+                              , areasPicked = newareas
+                       }
+        in
+        (newmodel, getColorJson newmodel)
+
+    ToggleArea msg ->
+        let
+            newAreas = (case model.areasPicked of
+                            Nothing ->
+                                Set.singleton msg
+                            Just a ->
+                                if Set.member msg a
+                                then Set.remove msg a
+                                else Set.insert msg a
+                       )
+            newmodel = {model | areasPicked = Just newAreas}
+        in
+            (newmodel , getColorJson newmodel)
+
 
     SumVMT sumvmt ->
         ({model | sumVMT = Just sumvmt},Cmd.none)
@@ -765,6 +801,8 @@ mapcontrol model =
             ,button [ class animateclass , onClick Animate ] [ Html.text ("Animate data")]
                   ]
             ,div [Attr.class ("row "++badclass)][Html.text baddate]
+            ,areaPickerControl model
+            ,areaSelectorControl model
             ,pickbuttons model
             ,div [Attr.class "row"]
                 [label [Attr.for "volrange"
@@ -809,6 +847,95 @@ mapcontrol model =
                 ]
 
 
+areaPickerControl : Model -> Html Msg
+areaPickerControl model =
+
+    (div [Attr.class "areainputs row"]
+     [div [Attr.class "btn-group"
+          ,Attr.attribute "role" "group" ]
+          [button [Attr.type' "button"
+                  ,Attr.class (if model.areaTypePicked == Statewide
+                               then "btn btn-default active"
+                               else "btn btn-default")
+                  ,onClick (HandleArea Statewide)]
+               [ Html.text "Statewide" ]
+          ,button [Attr.type' "button"
+                  ,Attr.class (if model.areaTypePicked == County
+                               then "btn btn-default active"
+                               else "btn btn-default")
+                  ,onClick (HandleArea County)]
+               [ Html.text "County" ]
+          ,button [Attr.type' "button"
+                  ,Attr.class (if model.areaTypePicked == Airbasin
+                               then "btn btn-default active"
+                               else "btn btn-default")
+                  ,onClick (HandleArea Airbasin)]
+               [ Html.text "Air Basin" ]
+          ,button [Attr.type' "button"
+                  ,Attr.class (if model.areaTypePicked == Airdistrict
+                               then "btn btn-default active"
+                               else "btn btn-default")
+                  ,onClick (HandleArea Airdistrict)]
+               [ Html.text "Air District" ]
+          ]
+     ,areaDropdownControl model
+     ])
+
+
+areaToggleButton : Set String -> String -> Html Msg
+areaToggleButton picked area =
+    let
+        cls = if (Set.member area picked)
+              then "btn area active"
+              else "btn area"
+    in
+    button [Attr.type' "button"
+            ,Attr.class cls
+            ,onClick (ToggleArea area)]
+         [Html.text area]
+
+
+
+
+areaDropdownControl : Model -> Html Msg
+areaDropdownControl model =
+    if model.areaTypePicked == Statewide
+    then (div [Attr.class "hide"][])
+    else -- do something
+        let
+            buttonlist = case model.areaTypePicked of
+                             County -> Dict.keys (Maybe.withDefault Dict.empty model.county_membership)
+                             _ -> [] -- todo
+        in
+            (div [class "dropdown"]
+                 [button [Attr.type' "button"
+                         ,id "areapickerdropdown"
+                         ,Attr.class "btn btn-default dropdown-toggle"
+                         ,Attr.attribute "data-toggle" "dropdown"
+                         ,Attr.attribute "aria-haspopup" "true"
+                         ,Attr.attribute "aria-expanded" (if model.areaPickerExpanded
+                                                          then "true"
+                                                          else "false")
+                         ,onClick AreaPickerToggle
+                         ][Html.text "Select", (span [class "caret"][])]
+                      ])
+
+areaSelectorControl : Model -> Html Msg
+areaSelectorControl model =
+    if model.areaTypePicked == Statewide || (not model.areaPickerExpanded)
+    then (div [Attr.class "hide"][])
+    else -- do something
+        let
+            buttonlist = case model.areaTypePicked of
+                             County -> Dict.keys (Maybe.withDefault Dict.empty model.county_membership)
+                             _ -> [] -- todo
+        in
+            (div [Attr.class "areainputs row"]
+                 (List.map (areaToggleButton
+                                (Maybe.withDefault
+                                     Set.empty model.areasPicked))
+                      buttonlist)
+            )
 
 
 view : Model -> Html Msg
@@ -987,9 +1114,9 @@ makeSummer model  =
         gridDictResult
 
 
-subsetAreas : List String -> String -> (List String) -> Bool
+subsetAreas : Set String -> String -> (List String) -> Bool
 subsetAreas keeplist area _ =
-    List.member area keeplist
+    Set.member area keeplist
 
 
 
@@ -999,6 +1126,7 @@ sumDataValues :  Model -> List (String, Float)
 sumDataValues model =
     let
         -- use gridkeys here, so that I can pick just county, etc later
+        debugblah  = Debug.log "databals is" model.areaTypePicked
         gridkeys = case model.areaTypePicked of
                        Statewide ->
                            Dict.keys model.colorData
@@ -1007,12 +1135,13 @@ sumDataValues model =
                                 -- for each of the picked areas,
                                 -- concatenate the "county" grid
                                 -- entries that match
-                               aplist = Maybe.withDefault [] model.areasPicked
-                               membership = Maybe.withDefault Dict.empty model.county_membership
-                               griddict = Dict.filter (subsetAreas aplist) membership
-                               gridlists = Dict.values griddict
-                           in
-                               List.concat gridlists
+
+                                aplist = Maybe.withDefault Set.empty model.areasPicked
+                                membership = Maybe.withDefault Dict.empty model.county_membership
+                                griddict = Dict.filter (subsetAreas aplist) membership
+                                gridlists = Dict.values griddict
+                            in
+                                List.concat gridlists
                        _ -> []
 
         -- for each key, I need to sum up the appropriate values in
