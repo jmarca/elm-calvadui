@@ -108,7 +108,9 @@ type alias ColorMessages =
 
 type alias Flags =
     {mapfile : String
-    ,membershipfile : String
+    ,countymembershipfile : String
+    ,airbasinmembershipfile : String
+    ,airdistrictmembershipfile : String
     ,dataUrl : String
     ,year : Int
     ,month : Int
@@ -280,7 +282,9 @@ init fl =
         , scaleExponent = 0.3
         , opacity = 0.5}
          ! [ Cmd.batch([ getIt2 fl.mapfile
-                       , getIt3 fl.membershipfile
+                       , getIt3 fl.countymembershipfile
+                       , getIt4 fl.airdistrictmembershipfile
+                       , getIt5 fl.airbasinmembershipfile
                        , Cmd.map ToDatePicker datePickerFx
                        ])]
 
@@ -311,6 +315,8 @@ type Msg
   = MorePlease
   | FetchSucceed2 Json.Value
   | FetchSucceed3 AreaMembership
+  | FetchSucceed4 AreaMembership
+  | FetchSucceed5 AreaMembership
   | FetchDataSucceed (Dict String (Dict String (Dict String Float)))
   | IdPath (List PathRecord)
   | ColorMap Json.Value
@@ -542,6 +548,12 @@ update msg model =
 
     FetchSucceed3 rec ->
         ({model | county_membership = Just rec} , Cmd.none)
+
+    FetchSucceed4 rec ->
+        ({model | airdistrict_membership = Just rec} , Cmd.none)
+
+    FetchSucceed5 rec ->
+        ({model | airbasin_membership = Just rec} , Cmd.none)
 
     FetchDataSucceed rec ->
         let
@@ -902,23 +914,18 @@ areaDropdownControl model =
     if model.areaTypePicked == Statewide
     then (div [Attr.class "hide"][])
     else -- do something
-        let
-            buttonlist = case model.areaTypePicked of
-                             County -> Dict.keys (Maybe.withDefault Dict.empty model.county_membership)
-                             _ -> [] -- todo
-        in
-            (div [class "dropdown"]
-                 [button [Attr.type' "button"
-                         ,id "areapickerdropdown"
-                         ,Attr.class "btn btn-default dropdown-toggle"
-                         ,Attr.attribute "data-toggle" "dropdown"
-                         ,Attr.attribute "aria-haspopup" "true"
-                         ,Attr.attribute "aria-expanded" (if model.areaPickerExpanded
-                                                          then "true"
-                                                          else "false")
-                         ,onClick AreaPickerToggle
-                         ][Html.text "Select", (span [class "caret"][])]
-                      ])
+        (div [class "dropdown"]
+             [button [Attr.type' "button"
+                     ,id "areapickerdropdown"
+                     ,Attr.class "btn btn-default dropdown-toggle"
+                     ,Attr.attribute "data-toggle" "dropdown"
+                     ,Attr.attribute "aria-haspopup" "true"
+                     ,Attr.attribute "aria-expanded" (if model.areaPickerExpanded
+                                                      then "true"
+                                                      else "false")
+                     ,onClick AreaPickerToggle
+                     ][Html.text "Select", (span [class "caret"][])]
+             ])
 
 areaSelectorControl : Model -> Html Msg
 areaSelectorControl model =
@@ -928,6 +935,8 @@ areaSelectorControl model =
         let
             buttonlist = case model.areaTypePicked of
                              County -> Dict.keys (Maybe.withDefault Dict.empty model.county_membership)
+                             Airbasin -> Dict.keys (Maybe.withDefault Dict.empty model.airbasin_membership)
+                             Airdistrict -> Dict.keys (Maybe.withDefault Dict.empty model.airdistrict_membership)
                              _ -> [] -- todo
         in
             (div [Attr.class "areainputs row"]
@@ -1127,22 +1136,25 @@ sumDataValues model =
     let
         -- use gridkeys here, so that I can pick just county, etc later
         debugblah  = Debug.log "databals is" model.areaTypePicked
-        gridkeys = case model.areaTypePicked of
-                       Statewide ->
-                           Dict.keys model.colorData
-                       County ->
-                            let
-                                -- for each of the picked areas,
-                                -- concatenate the "county" grid
-                                -- entries that match
+        gridkeys = if model.areaTypePicked == Statewide
+                   then Dict.keys model.colorData
+                   else
+                       let
+                           -- for each of the picked areas,
+                           -- concatenate the "county" grid
+                           -- entries that match
 
-                                aplist = Maybe.withDefault Set.empty model.areasPicked
-                                membership = Maybe.withDefault Dict.empty model.county_membership
-                                griddict = Dict.filter (subsetAreas aplist) membership
-                                gridlists = Dict.values griddict
-                            in
-                                List.concat gridlists
-                       _ -> []
+                           aplist = Maybe.withDefault Set.empty model.areasPicked
+                           membership = case model.areaTypePicked of
+                                            County -> Maybe.withDefault Dict.empty model.county_membership
+                                            Airbasin -> Maybe.withDefault Dict.empty model.airbasin_membership
+                                            Airdistrict -> Maybe.withDefault Dict.empty model.airdistrict_membership
+                                            _ -> Dict.empty
+
+                           griddict = Dict.filter (subsetAreas aplist) membership
+                           gridlists = Dict.values griddict
+                       in
+                           List.concat gridlists
 
         -- for each key, I need to sum up the appropriate values in
         -- the colorData dictionary of data.  So make the summer,
@@ -1202,6 +1214,14 @@ decodeResult2 = Json.value
 getIt3 : String -> Cmd Msg
 getIt3 url =
     Task.perform FetchFail FetchSucceed3 (Http.get decodeResult3 url)
+
+getIt4 : String -> Cmd Msg
+getIt4 url =
+    Task.perform FetchFail FetchSucceed4 (Http.get decodeResult3 url)
+
+getIt5 : String -> Cmd Msg
+getIt5 url =
+    Task.perform FetchFail FetchSucceed5 (Http.get decodeResult3 url)
 
 decodeResult3 : Json.Decoder AreaMembership
 decodeResult3 =
