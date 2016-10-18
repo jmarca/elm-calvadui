@@ -1135,7 +1135,6 @@ sumDataValues :  Model -> List (String, Float)
 sumDataValues model =
     let
         -- use gridkeys here, so that I can pick just county, etc later
-        debugblah  = Debug.log "databals is" model.areaTypePicked
         gridkeys = if model.areaTypePicked == Statewide
                    then Dict.keys model.colorData
                    else
