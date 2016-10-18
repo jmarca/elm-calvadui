@@ -16,6 +16,7 @@
   "devDependencies": {
     "autoprefixer": "^6.3.6",
     "bootstrap-sass": "^3.3.6",
+    "calvad_areas": "github:jmarca/calvad_areas",
     "copy-webpack-plugin": "^3.0.1",
     "css-loader": "^0.23.1",
     "d3": "^4.2.6",

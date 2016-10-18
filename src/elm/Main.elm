@@ -20,6 +20,7 @@ import Date.Extra.Period as Period exposing (Period (..))
 import Dict exposing (..)
 import Regex exposing (..)
 import Array exposing (..)
+import Set exposing (..)
 
 main : Program Flags
 main =
@@ -55,10 +56,29 @@ type alias ColorResponse =
     {data : Dict String String
     ,newmax : Int}
 
+type AreaType
+    = County
+    | Airbasin
+    | Airdistrict
+    | Statewide
+
+
+type alias AreaMembership = Dict String (List String)
+
+
+
+
+
 type alias Model =
     {file : String
     ,records : Maybe (List PathRecord)
     ,data : Maybe (Dict String String)
+    ,county_membership : Maybe AreaMembership
+    ,airdistrict_membership : Maybe AreaMembership
+    ,airbasin_membership : Maybe AreaMembership
+    ,areaPickerExpanded : Bool
+    ,areaTypePicked : AreaType
+    ,areasPicked : Maybe (Set String)
     ,dataUrl : String
     ,fetchingColors : Bool
     ,showingDate : Maybe String
@@ -88,6 +108,9 @@ type alias ColorMessages =
 
 type alias Flags =
     {mapfile : String
+    ,countymembershipfile : String
+    ,airbasinmembershipfile : String
+    ,airdistrictmembershipfile : String
     ,dataUrl : String
     ,year : Int
     ,month : Int
@@ -121,6 +144,12 @@ init fl =
         , dataUrl = fl.dataUrl
         , records = Nothing
         , data = Nothing
+        , county_membership = Nothing
+        , airdistrict_membership = Nothing
+        , airbasin_membership = Nothing
+        , areaPickerExpanded = False
+        , areaTypePicked = Statewide
+        , areasPicked = Nothing
         , detectorBased = { entry = ""
                           , value = "detectorbased"
                           , class = "detector btn"
@@ -252,7 +281,10 @@ init fl =
         , autoMax = False
         , scaleExponent = 0.3
         , opacity = 0.5}
-         ! [ Cmd.batch([getIt2 fl.mapfile
+         ! [ Cmd.batch([ getIt2 fl.mapfile
+                       , getIt3 fl.countymembershipfile
+                       , getIt4 fl.airdistrictmembershipfile
+                       , getIt5 fl.airbasinmembershipfile
                        , Cmd.map ToDatePicker datePickerFx
                        ])]
 
@@ -282,6 +314,9 @@ type BtnMsg
 type Msg
   = MorePlease
   | FetchSucceed2 Json.Value
+  | FetchSucceed3 AreaMembership
+  | FetchSucceed4 AreaMembership
+  | FetchSucceed5 AreaMembership
   | FetchDataSucceed (Dict String (Dict String (Dict String Float)))
   | IdPath (List PathRecord)
   | ColorMap Json.Value
@@ -290,6 +325,9 @@ type Msg
   | ToDatePicker DatePicker.Msg
   | NewHour String
   | HandleButton BtnMsg Int String
+  | AreaPickerToggle
+  | HandleArea AreaType
+  | ToggleArea String
   | ScaleDomain String
   | SumVMT String
   | AutoMax
@@ -432,6 +470,36 @@ update msg model =
                                 , getColorJson {model | detectorPlotVars = newArr})
                         _ -> (model, Cmd.none)
 
+    AreaPickerToggle ->
+        ({model | areaPickerExpanded = (not model.areaPickerExpanded)}
+             ,Cmd.none)
+
+    HandleArea msg ->
+        let
+            newareas = if msg == model.areaTypePicked
+                       then model.areasPicked
+                       else Nothing
+            newmodel = {model | areaTypePicked = msg
+                              , areasPicked = newareas
+                       }
+        in
+        (newmodel, getColorJson newmodel)
+
+    ToggleArea msg ->
+        let
+            newAreas = (case model.areasPicked of
+                            Nothing ->
+                                Set.singleton msg
+                            Just a ->
+                                if Set.member msg a
+                                then Set.remove msg a
+                                else Set.insert msg a
+                       )
+            newmodel = {model | areasPicked = Just newAreas}
+        in
+            (newmodel , getColorJson newmodel)
+
+
     SumVMT sumvmt ->
         ({model | sumVMT = Just sumvmt},Cmd.none)
 
@@ -477,6 +545,15 @@ update msg model =
 
     FetchSucceed2 rec ->
         (model, getTopoJson rec)
+
+    FetchSucceed3 rec ->
+        ({model | county_membership = Just rec} , Cmd.none)
+
+    FetchSucceed4 rec ->
+        ({model | airdistrict_membership = Just rec} , Cmd.none)
+
+    FetchSucceed5 rec ->
+        ({model | airbasin_membership = Just rec} , Cmd.none)
 
     FetchDataSucceed rec ->
         let
@@ -736,6 +813,8 @@ mapcontrol model =
             ,button [ class animateclass , onClick Animate ] [ Html.text ("Animate data")]
                   ]
             ,div [Attr.class ("row "++badclass)][Html.text baddate]
+            ,areaPickerControl model
+            ,areaSelectorControl model
             ,pickbuttons model
             ,div [Attr.class "row"]
                 [label [Attr.for "volrange"
@@ -780,6 +859,92 @@ mapcontrol model =
                 ]
 
 
+areaPickerControl : Model -> Html Msg
+areaPickerControl model =
+
+    (div [Attr.class "areainputs row"]
+     [div [Attr.class "btn-group"
+          ,Attr.attribute "role" "group" ]
+          [button [Attr.type' "button"
+                  ,Attr.class (if model.areaTypePicked == Statewide
+                               then "btn btn-default active"
+                               else "btn btn-default")
+                  ,onClick (HandleArea Statewide)]
+               [ Html.text "Statewide" ]
+          ,button [Attr.type' "button"
+                  ,Attr.class (if model.areaTypePicked == County
+                               then "btn btn-default active"
+                               else "btn btn-default")
+                  ,onClick (HandleArea County)]
+               [ Html.text "County" ]
+          ,button [Attr.type' "button"
+                  ,Attr.class (if model.areaTypePicked == Airbasin
+                               then "btn btn-default active"
+                               else "btn btn-default")
+                  ,onClick (HandleArea Airbasin)]
+               [ Html.text "Air Basin" ]
+          ,button [Attr.type' "button"
+                  ,Attr.class (if model.areaTypePicked == Airdistrict
+                               then "btn btn-default active"
+                               else "btn btn-default")
+                  ,onClick (HandleArea Airdistrict)]
+               [ Html.text "Air District" ]
+          ]
+     ,areaDropdownControl model
+     ])
+
+
+areaToggleButton : Set String -> String -> Html Msg
+areaToggleButton picked area =
+    let
+        cls = if (Set.member area picked)
+              then "btn area active"
+              else "btn area"
+    in
+    button [Attr.type' "button"
+            ,Attr.class cls
+            ,onClick (ToggleArea area)]
+         [Html.text area]
+
+
+
+
+areaDropdownControl : Model -> Html Msg
+areaDropdownControl model =
+    if model.areaTypePicked == Statewide
+    then (div [Attr.class "hide"][])
+    else -- do something
+        (div [class "dropdown"]
+             [button [Attr.type' "button"
+                     ,id "areapickerdropdown"
+                     ,Attr.class "btn btn-default dropdown-toggle"
+                     ,Attr.attribute "data-toggle" "dropdown"
+                     ,Attr.attribute "aria-haspopup" "true"
+                     ,Attr.attribute "aria-expanded" (if model.areaPickerExpanded
+                                                      then "true"
+                                                      else "false")
+                     ,onClick AreaPickerToggle
+                     ][Html.text "Select", (span [class "caret"][])]
+             ])
+
+areaSelectorControl : Model -> Html Msg
+areaSelectorControl model =
+    if model.areaTypePicked == Statewide || (not model.areaPickerExpanded)
+    then (div [Attr.class "hide"][])
+    else -- do something
+        let
+            buttonlist = case model.areaTypePicked of
+                             County -> Dict.keys (Maybe.withDefault Dict.empty model.county_membership)
+                             Airbasin -> Dict.keys (Maybe.withDefault Dict.empty model.airbasin_membership)
+                             Airdistrict -> Dict.keys (Maybe.withDefault Dict.empty model.airdistrict_membership)
+                             _ -> [] -- todo
+        in
+            (div [Attr.class "areainputs row"]
+                 (List.map (areaToggleButton
+                                (Maybe.withDefault
+                                     Set.empty model.areasPicked))
+                      buttonlist)
+            )
 
 
 view : Model -> Html Msg
@@ -888,10 +1053,12 @@ checkOn category button = category.on && button.on
 matchOn : String -> PlottingButton -> Bool
 matchOn key button =  button.matchFn key
 
-sumValues : Model -> (String -> Dict String Float -> Float -> Float)
-sumValues model =
-    -- check here whether to bother with dictkey
+
+makeSummer : Model -> String -> (String,Float)
+makeSummer model  =
     let
+        -- first, what are the keys I'm going to be summing up inside
+        -- the grid's dictionary?
         hpmsBased =  model.hpmsBased
         detectorBased = model.detectorBased
 
@@ -901,57 +1068,109 @@ sumValues model =
         hpmsPlotVars =  List.filter (checkOn hpmsBased) (Array.toList model.hpmsPlotVars)
         detectorPlotVars = List.filter (checkOn detectorBased) (Array.toList model.detectorPlotVars)
 
-        -- now decide about this key.  look through each button
-        -- it is either hpms based, or detector based entry.
-
         -- condense the tests.  If ANY pass, then keep the entry for summing
         -- need to check for degenerate cases
         buttonTests =  if detectorBased.on
                        then detectorBased :: hpmsRoadTypes
                        else hpmsRoadTypes
 
-        summer : String -> Dict String Float -> Float -> Float
-        summer dictkey mydict start =
+        -- if a detector based thing, then
+        -- use those plot vars
+        dplotlist = if detectorBased.on
+                    then List.map (\l -> l.entry ) detectorPlotVars
+                    else []
+        -- now to hpms conditions
+        hplotlist = if hpmsBased.on
+                    then List.map (\l -> l.entry ) hpmsPlotVars
+                    else []
+        plotlist = List.concat [dplotlist, hplotlist]
+
+        gridDictResult : String -> (String, Float)
+        gridDictResult gridkey =
             let
-                isWorthy = List.any (matchOn dictkey) buttonTests
-                -- blblb = Debug.log (dictkey ++ " isWorthy: ") isWorthy
+                -- then, what is the grid?
+                mydict = Dict.get gridkey model.colorData
+                -- mydict is a Dict String (Dict String Float)
+                         -- where the first string is road types, and the
+                         -- second string is data types (vmt, etc)
             in
-                if (not isWorthy)
-                -- then ( Debug.log (dictkey ++ " skipping case ") (start + 0.0))
-                then  (start + 0.0)
-                else
-                    let
-                    -- filterDict = Dict.filter (dataTypeFilter pv) mydict
-                        dplotlist = if detectorBased.on
-                                     -- if a detector based thing, then use those plot vars
-                                    then List.map (\l -> l.entry ) detectorPlotVars
-                                    else []
-                                    -- now to hpms conditions
-                        hplotlist = if hpmsBased.on
-                                    -- if an hpms based thing, then use those plot vars
-                                    then List.map (\l -> l.entry ) hpmsPlotVars
-                                    else []
-                        plotlist = List.concat [dplotlist, hplotlist]
-                    in
-                        List.foldl (getter mydict) start plotlist
+                case mydict of
+                    Nothing -> (gridkey, 0)
+                    Just d  ->
+                        -- have a dictionary.  sum over road types
+                        -- sum up the relevant keys
+                        let
+                            -- make a summation function
+                            -- for dictonary pass
+                            dictsum :  String -> (Dict String Float) -> Float -> Float
+                            dictsum dictkey thisdict total =
+
+                           -- decide about this key.  look through each button it
+                           -- is either hpms based, or detector based entry.
+                                let
+                                    isWorthy = List.any (matchOn dictkey) buttonTests
+                                in
+                                    if (not isWorthy)
+                                    -- then ( Debug.log (dictkey ++ " skipping case ") (start + 0.0))
+                                    then
+                                        (total + 0.0)
+                                    else
+                                        List.foldl (getter thisdict) total plotlist
+                        in
+                            (gridkey, Dict.foldl dictsum 0.0 d)
+
     in
-        summer
+        gridDictResult
 
 
-gridReduce : (String -> Dict String Float -> Float -> Float) -> String ->  (Dict String (Dict String Float) ) -> Float
-gridReduce redfn gridid griddata =
-    Dict.foldl redfn  0.0 griddata
+subsetAreas : Set String -> String -> (List String) -> Bool
+subsetAreas keeplist area _ =
+    Set.member area keeplist
 
-sumDataValues :  Model -> Dict String Float
+
+
+-- iterate over the colorData, summing up the appropriate values
+-- inside each grid cell
+sumDataValues :  Model -> List (String, Float)
 sumDataValues model =
     let
-        redfn =  sumValues model
+        -- use gridkeys here, so that I can pick just county, etc later
+        debugblah  = Debug.log "databals is" model.areaTypePicked
+        gridkeys = if model.areaTypePicked == Statewide
+                   then Dict.keys model.colorData
+                   else
+                       let
+                           -- for each of the picked areas,
+                           -- concatenate the "county" grid
+                           -- entries that match
+
+                           aplist = Maybe.withDefault Set.empty model.areasPicked
+                           membership = case model.areaTypePicked of
+                                            County -> Maybe.withDefault Dict.empty model.county_membership
+                                            Airbasin -> Maybe.withDefault Dict.empty model.airbasin_membership
+                                            Airdistrict -> Maybe.withDefault Dict.empty model.airdistrict_membership
+                                            _ -> Dict.empty
+
+                           griddict = Dict.filter (subsetAreas aplist) membership
+                           gridlists = Dict.values griddict
+                       in
+                           List.concat gridlists
+
+        -- for each key, I need to sum up the appropriate values in
+        -- the colorData dictionary of data.  So make the summer,
+        -- which is based on the model, using the current state of the
+        -- various button presses
+        redfn =  makeSummer model
+
     in
 
-    Dict.map (gridReduce redfn)  model.colorData
+        -- then that reduce function can be applied to the grid keys,
+        -- and will generate a list of (String, Float)
+        List.map redfn gridkeys
 
-dropZeros : String -> Float -> Bool
-dropZeros k v =
+
+dropZeros : (String, Float) -> Bool
+dropZeros (_, v) =
     (not (v == 0.0))
 
 sumBlob : (String, Float) -> Float -> Float
@@ -961,7 +1180,14 @@ sumBlob (_, value) sum =    value + sum
 getColorJson : Model -> Cmd Msg
 getColorJson model =
     let
-        datablob = ( Dict.toList (Dict.filter dropZeros (sumDataValues model)))
+        -- datablob can become a JS object of key,value pairs
+        -- gridid : Float
+        -- so that getColorJson2 can convert Float to colors
+        --
+        -- sumDataValues model does the summing, needs to generate a
+        -- list of string,float
+
+        datablob =  (List.filter dropZeros (sumDataValues model))
         sumvmt = List.foldr sumBlob 0 datablob
     in
         Cmd.batch([ getFormattedVMT sumvmt
@@ -983,6 +1209,23 @@ getIt2 f =
 
 decodeResult2 : Json.Decoder Json.Value
 decodeResult2 = Json.value
+
+
+getIt3 : String -> Cmd Msg
+getIt3 url =
+    Task.perform FetchFail FetchSucceed3 (Http.get decodeResult3 url)
+
+getIt4 : String -> Cmd Msg
+getIt4 url =
+    Task.perform FetchFail FetchSucceed4 (Http.get decodeResult3 url)
+
+getIt5 : String -> Cmd Msg
+getIt5 url =
+    Task.perform FetchFail FetchSucceed5 (Http.get decodeResult3 url)
+
+decodeResult3 : Json.Decoder AreaMembership
+decodeResult3 =
+     Json.dict (Json.list Json.string)
 
 
 gridDataDictionary : Json.Decoder (Dict String (Dict String (Dict String Float)))

@@ -105,6 +105,10 @@ if ( TARGET_ENV === 'development' ) {
           to:   'data/'
         },
         {
+          from: 'src/static/grid/',
+          to:   'grid/'
+        },
+        {
           from: 'src/static/hpms/',
           to:   'hpms/'
         },
