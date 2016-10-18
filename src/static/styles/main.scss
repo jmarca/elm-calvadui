@@ -145,8 +145,8 @@ rect {
 .bar rect {
     fill:steelblue;
 }
-.var text {
-    fill: #eee;
+.bar text {
+    fill: $black;
     font: 10px sans-serif;
 }
 
@@ -175,6 +175,34 @@ div.hours {
 .jumbotron {
     border-radius: 20px;
     box-shadow: 0px 2px 5px 1px rgba(1, 0, 0, 0.3);
+}
+
+
+
+.axis {
+  font: 10px sans-serif;
+}
+
+.yaxis-caption {
+  text-anchor: end;
+  font: 12px sans-serif;
+}
+
+.xaxis-caption {
+  text-anchor: middle;
+  font: 12px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis--y .tick:not(.tick--one) line,
+.axis--x .tick:not(.tick--one) line {
+  stroke-opacity: .35;
 }
 
 

@@ -277,7 +277,7 @@ init fl =
         , fetchingColors = False
         , showingDate = Nothing
         , sumVMT = Nothing
-        , scaleDomain = 190000
+        , scaleDomain = 160000
         , autoMax = False
         , scaleExponent = 0.3
         , opacity = 0.5}
@@ -991,12 +991,12 @@ view model =
                                      ,Svg.g [ class "hist"
                                             , width "500"
                                             , height "200"
-                                            , SvgAttr.transform "translate(0,60)"][]
+                                            , SvgAttr.transform "translate(10,60)"][]
 
                                      ,Svg.g [ class "sums"
                                             , width "500"
                                             , height "100"
-                                            , SvgAttr.transform "translate(0,280)"]
+                                            , SvgAttr.transform "translate(0,340)"]
                                          [Svg.text'[x "250"
                                                    , y "24"
                                                    , fontSize "24"
@@ -1004,7 +1004,7 @@ view model =
                                                    , textAnchor "middle"
                                                    , class "vmtsum"][Svg.text  (case model.sumVMT of
                                                                             Nothing -> ""
-                                                                            Just vmt -> ("Total VMT is " ++ vmt))]]
+                                                                            Just vmt -> ("Total VMT ≈ " ++ vmt))]]
                                      ]
                                 ]
 

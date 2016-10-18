@@ -5,7 +5,7 @@ var handleColor = require("./handleColor.js")
 var handleTopo = require("./handleTopo.js")
 
 var d3 = require('d3')
-var formatCount = d3.format(".0s")
+var formatCount = d3.format(".3s")
 
 
 // inject bundled Elm app into div#main

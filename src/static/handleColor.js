@@ -7,18 +7,19 @@ function make_histogram(data,cls,cnt){
     d3.select("svg g.hist").selectAll("g."+cls).remove()
     if(data.length <10) return null
     // play with it here, then move to elm if necessary
-    var width = 480
-    var height = 60
     var vmargin = 30
-    var hmargin = 10
+    var hmargin = 30
+    var width = 430 // 500 - 2*hmargin
+    var height = 60
+    var xtickcount = 15
 
     var x = d3.scaleLinear() // scalePow().exponent(exponent)//
             .domain(d3.extent(data))
-            .rangeRound([0, width]);
+            .rangeRound([2*hmargin, width]);
 
     var bins = d3.histogram()
             .domain(x.domain())
-            .thresholds(x.ticks(15))
+            .thresholds(x.ticks(xtickcount))
     (data)
 
     var y = d3.scaleLinear()
@@ -30,7 +31,7 @@ function make_histogram(data,cls,cnt){
     var g = d3.select("svg g.hist")
             .append("g")
             .attr("class",cls)
-            .attr("transform", "translate(0,"+cnt*(height+2*vmargin)+")")
+            .attr("transform", "translate(0,"+cnt*(height+3*vmargin)+")")
 
     var bars = g.selectAll(".bar")
         .data(bins)
@@ -58,17 +59,28 @@ function make_histogram(data,cls,cnt){
         .text(function(d) { return formatCount(d.length); });
 
     g.selectAll("g.axis--x").remove()
+    g.selectAll("g.axis--y").remove()
     g.append("g")
         .attr("class", "axis axis--x")
         .attr("transform", "translate(0,"+(height+20)+")")
-        .call(d3.axisBottom(x));
+        .call(d3.axisBottom(x).ticks(xtickcount,"s")
+             );
+
+
+    var gY = g.append("g")
+            .attr("class", "axis axis--y")
+            .attr("transform", "translate("+1.9*hmargin+",0)")
+
+    gY.call(d3.axisLeft(y).ticks(4,"s"))
+
+
 
     g.selectAll("text.caption").data([cnt])
         .enter()
         .append("text")
         .attr("text-anchor","middle")
         .attr("class","caption")
-        .attr("transform", "translate("+(width/2 + hmargin)+",0)")
+        .attr("transform", "translate("+(500/2)+",0)")
         .text(function(d){
             var msg =  "Histogram of grid volumes under 1K VMT"
             if(d===1){
@@ -76,6 +88,25 @@ function make_histogram(data,cls,cnt){
             }
             return msg
         })
+
+    g.selectAll("text.yaxis-caption").data([cnt])
+        .enter()
+        .append("text")
+        .attr("class", "yaxis-caption axis")
+        .attr("transform", "translate("+(hmargin/4)+",-5),rotate(-90)")
+        //.attr("y", 6)
+        .attr("dy", ".71em")
+        .text("# of Grid Cells")
+
+    g.selectAll("text.xaxis-caption").data([cnt])
+        .enter()
+        .append("text")
+        .attr("class", "xaxis-caption axis")
+        .attr("transform", "translate("+(500/2)+","+(height+1.4*vmargin)+")")
+        .attr("dy", ".71em")
+        .text("Hourly VMT in a Grid Cell")
+
+    return null
 }
 
 /**
